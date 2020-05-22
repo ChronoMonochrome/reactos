@@ -59,7 +59,7 @@
 @ stdcall -version=0x600+ _initialize_onexit_table(ptr) msvcrt._initialize_onexit_table
 @ cdecl -version=0x600+ _initialize_wide_environment() msvcrt._initialize_wide_environment
 @ stdcall _initterm() msvcrt._initterm
-@ stdcall -version=0x600+ _initterm_e() msvcrt._initterm_e
+@ cdecl -version=0x600+ _initterm_e(ptr ptr) msvcrt._initterm_e
 @ cdecl -version=0x600+ _invalid_parameter_noinfo() msvcrt._invalid_parameter_noinfo
 @ cdecl -version=0x600+ _invalid_parameter_noinfo_noreturn() msvcrt._invalid_parameter_noinfo_noreturn
 @ stub _invoke_watson

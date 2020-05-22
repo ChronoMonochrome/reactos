@@ -19,6 +19,7 @@ include_directories(
 
 list(APPEND SOURCE
     dbg/dbgui.c
+    ldr/appcompat.c
     ldr/ldrapi.c
     ldr/ldrinit.c
     ldr/ldrpe.c
