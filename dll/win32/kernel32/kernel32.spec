@@ -16,8 +16,8 @@
 @ stdcall AllocConsole()
 @ stdcall AllocateUserPhysicalPages(long ptr ptr)
 @ stdcall -stub -version=0x600+ AllocateUserPhysicalPagesNuma(ptr ptr ptr long)
-@ stdcall -stub -version=0x600+ ApplicationRecoveryFinished(long)
-@ stdcall -stub -version=0x600+ ApplicationRecoveryInProgress(ptr)
+@ stdcall -version=0x600+ ApplicationRecoveryFinished(long)
+@ stdcall -version=0x600+ ApplicationRecoveryInProgress(ptr)
 @ stdcall AreFileApisANSI()
 @ stdcall AssignProcessToJobObject(ptr ptr)
 @ stdcall AttachConsole(long)
@@ -729,7 +729,7 @@
 @ stdcall -arch=i386 InterlockedIncrement(ptr)
 @ stdcall InterlockedPopEntrySList(ptr) ntdll.RtlInterlockedPopEntrySList
 @ stdcall InterlockedPushEntrySList(ptr ptr) ntdll.RtlInterlockedPushEntrySList
-@ stdcall -stub -version=0x600+ InterlockedPushListSList(ptr ptr ptr long)
+@ fastcall -version=0x600+ InterlockedPushListSList(ptr ptr ptr long) ntdll.RtlInterlockedPushListSList
 @ stdcall InvalidateConsoleDIBits(long long)
 @ stdcall IsBadCodePtr(ptr)
 @ stdcall IsBadHugeReadPtr(ptr long)
@@ -1194,7 +1194,7 @@
 @ stdcall -version=0x600+ WakeConditionVariable(ptr) kernel32_vista.WakeConditionVariable
 @ stdcall -stub -version=0x600+ WerGetFlags(ptr ptr)
 @ stdcall -stub -version=0x600+ WerRegisterFile(wstr long long)
-;@ stdcall -version=0x600+ WerRegisterMemoryBlock(ptr long)
+@ stub -version=0x600+ WerRegisterMemoryBlock
 @ stdcall -stub -version=0x600+ WerSetFlags(long)
 @ stdcall -stub -version=0x600+ WerUnregisterFile(wstr)
 @ stdcall -stub -version=0x600+ WerUnregisterMemoryBlock(ptr)

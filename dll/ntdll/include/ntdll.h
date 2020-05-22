@@ -47,4 +47,7 @@
 /* PSEH */
 #include <pseh/pseh2.h>
 
+/* RosCompat */
+#include <roscompat.h>
+
 #endif /* _NTDLL_H */
