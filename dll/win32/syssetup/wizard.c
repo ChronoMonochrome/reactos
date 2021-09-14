@@ -424,8 +424,8 @@ typedef struct _PRODUCT_OPTION_DATA
 
 static const PRODUCT_OPTION_DATA s_ProductOptionData[] =
 {
-    { L"Terminal Server\0", L"ServerNT", 0, 0x200, 0 },
-    { L"\0", L"WinNT", 1, 0x300, 1 }
+    { L"Terminal Server\0", L"ServerNT", 0, 0x100, 0 },
+    { L"\0", L"WinNT", 1, 0x100, 1 }
 };
 
 static const WCHAR* s_DefaultSoundEvents[][2] = 

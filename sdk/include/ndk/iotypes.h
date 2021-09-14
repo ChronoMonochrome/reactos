@@ -324,7 +324,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileValidDataLengthInformation,
     FileShortNameInformation,
     FileIoCompletionNotificationInformation,
-#if (NTDDI_VERSION >= NTDDI_VISTA)
+#if 1//(NTDDI_VERSION < NTDDI_WIN7)
     FileIoStatusBlockRangeInformation,
     FileIoPriorityHintInformation,
     FileSfioReserveInformation,
