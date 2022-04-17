@@ -117,14 +117,34 @@ typedef struct _DWM_THUMBNAIL_PROPERTIES
     BOOL  fSourceClientAreaOnly;
 } DWM_THUMBNAIL_PROPERTIES, *PDWM_THUMBNAIL_PROPERTIES;
 
+typedef enum
+{
+    // Use the first source frame that
+    // includes the first refresh of the output frame
+    DWM_SOURCE_FRAME_SAMPLING_POINT,
+
+    // use the source frame that includes the most
+    // refreshes of out the output frame
+    // in case of multiple source frames with the
+    // same coverage the last will be used
+    DWM_SOURCE_FRAME_SAMPLING_COVERAGE,
+
+       // Sentinel value
+    DWM_SOURCE_FRAME_SAMPLING_LAST
+} DWM_SOURCE_FRAME_SAMPLING;
+
+
 #include <poppack.h>
 
-DWMAPI DwmDefWindowProc(HWND, UINT, WPARAM, LPARAM, LRESULT*);
+BOOL
+WINAPI
+DwmDefWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, LRESULT *plResult);
+
 DWMAPI DwmEnableBlurBehindWindow(HWND, const DWM_BLURBEHIND *);
 DWMAPI DwmEnableComposition(UINT);
 DWMAPI DwmEnableMMCSS(BOOL);
 DWMAPI DwmExtendFrameIntoClientArea(HWND,const MARGINS*);
-DWMAPI DwmGetColorizationColor(DWORD*,BOOL);
+DWMAPI DwmGetColorizationColor(DWORD*,BOOL*);
 DWMAPI DwmGetCompositionTimingInfo(HWND,DWM_TIMING_INFO*);
 DWMAPI DwmInvalidateIconicBitmaps(HWND);
 DWMAPI DwmIsCompositionEnabled(BOOL*);
