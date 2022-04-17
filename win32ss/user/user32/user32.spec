@@ -435,6 +435,7 @@
 430 stdcall IsRectEmpty(ptr)
 431 stdcall IsSETEnabled()
 432 stdcall IsServerSideWindow(long)
+@ stdcall -version=0x600+ IsThreadDesktopComposited()
 433 stdcall IsWinEventHookInstalled(long)
 434 stdcall IsWindow(long)
 435 stdcall IsWindowEnabled(long)
@@ -554,8 +555,8 @@
 549 stdcall RegisterHotKey(long long long long) NtUserRegisterHotKey
 550 stdcall RegisterLogonProcess(long long)
 551 stdcall RegisterMessagePumpHook(ptr)
-@   stdcall -stub -version=0x600+ RegisterPowerSettingNotification(ptr ptr long)
-@   stdcall -stub -version=0x600+ UnregisterPowerSettingNotification(ptr) 
+@   stdcall -version=0x600+ RegisterPowerSettingNotification(ptr ptr long)
+@   stdcall -version=0x600+ UnregisterPowerSettingNotification(ptr) 
 552 stdcall RegisterRawInputDevices(ptr long long)
 553 stdcall RegisterServicesProcess(long)
 554 stdcall RegisterShellHookWindow(long)
