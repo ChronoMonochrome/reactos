@@ -1229,6 +1229,7 @@ typedef struct _ETHREAD
            ULONG Spare1:3;
            ULONG PriorityRegionActive:4;
 #else
+           ULONG PriorityRegionActive:4;
            ULONG ApcNeeded:1;
 #endif
         };

@@ -5,8 +5,8 @@
 @ stdcall -version=0x600+ AcquireSRWLockShared() kernel32.AcquireSRWLockShared
 @ stdcall CancelWaitableTimer() kernel32.CancelWaitableTimer
 @ stdcall CreateEventA() kernel32.CreateEventA
-@ stdcall -version=0x600+ CreateEventExA() kernel32.CreateEventExA
-@ stdcall -version=0x600+ CreateEventExW() kernel32.CreateEventExW
+@ stdcall -stub -version=0x600+ CreateEventExA();kernel32.CreateEventExA
+@ stdcall -stub -version=0x600+ CreateEventExW();kernel32.CreateEventExW
 @ stdcall CreateEventW() kernel32.CreateEventW
 @ stdcall CreateMutexA() kernel32.CreateMutexA
 @ stdcall -version=0x600+ CreateMutexExA() kernel32.CreateMutexExA

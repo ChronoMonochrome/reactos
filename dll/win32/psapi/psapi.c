@@ -620,6 +620,20 @@ EnumProcessModules(HANDLE hProcess,
     return TRUE;
 }
 
+/*
+ * @unimplemented
+ */
+BOOL
+WINAPI
+EnumProcessModulesEx(HANDLE hProcess,
+                     HMODULE *lphModule,
+                     DWORD cb,
+                     LPDWORD lpcbNeeded,
+                     DWORD dwFilterFlag)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
 
 /*
  * @implemented
@@ -1154,6 +1168,18 @@ GetWsChanges(HANDLE hProcess,
     return TRUE;
 }
 
+/*
+ * @unimplemented
+ */
+BOOL
+WINAPI
+GetWsChangesEx(HANDLE hProcess,
+               PVOID lpWatchInfoEx, // PPSAPI_WS_WATCH_INFORMATION_EX
+               PDWORD cb)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
 
 /*
  * @implemented
