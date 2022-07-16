@@ -254,6 +254,22 @@ int CDECL MSVCRT__set_new_mode(int mode)
 }
 
 /*********************************************************************
+ * _aligned_msize (MSVCRT.@)
+ */
+size_t CDECL _aligned_msize(void *p, size_t alignment, size_t offset)
+{
+    void **alloc_ptr;
+
+    if(!MSVCRT_CHECK_PMT(p)) return -1;
+
+    if(alignment < sizeof(void*))
+        alignment = sizeof(void*);
+
+    alloc_ptr = SAVED_PTR(p);
+    return _msize(*alloc_ptr)-alignment-sizeof(void*);
+}
+
+/*********************************************************************
  *		_callnewh (MSVCRT.@)
  */
 int CDECL _callnewh(MSVCRT_size_t size)
@@ -442,6 +458,14 @@ void* CDECL _calloc_base(MSVCRT_size_t count, MSVCRT_size_t size)
 #endif
 
 /*********************************************************************
+ *		_calloc_base (MSVCRT.@)
+ */
+void* CDECL _calloc_base(size_t count, size_t size)
+{
+  return calloc(count, size);
+}
+
+/*********************************************************************
  *		free (MSVCRT.@)
  */
 void CDECL DECLSPEC_HOTPATCH MSVCRT_free(void* ptr)
@@ -458,6 +482,15 @@ void CDECL _free_base(void* ptr)
   msvcrt_heap_free(ptr);
 }
 #endif
+
+/*********************************************************************
+ *		_free_base (MSVCRT.@)
+ */
+void CDECL _free_base(void* ptr)
+{
+  if(ptr == NULL) return;
+  HeapFree(GetProcessHeap(),0,ptr);
+}
 
 /*********************************************************************
  *                  malloc (MSVCRT.@)
@@ -479,6 +512,14 @@ void* CDECL _malloc_base(MSVCRT_size_t size)
   return MSVCRT_malloc(size);
 }
 #endif
+
+/*********************************************************************
+ *                  _malloc_base (MSVCRT.@)
+ */
+void* CDECL _malloc_base(size_t size)
+{
+  return malloc(size);
+}
 
 /*********************************************************************
  *		realloc (MSVCRT.@)
@@ -527,6 +568,39 @@ void* CDECL _recalloc(void *mem, MSVCRT_size_t num, MSVCRT_size_t size)
     return ret;
 }
 #endif
+
+/*********************************************************************
+ *		_realloc_base (MSVCRT.@)
+ */
+void* CDECL _realloc_base(void* ptr, size_t size)
+{
+  return realloc(ptr, size);
+}
+
+/*********************************************************************
+ * _recalloc (MSVCRT.@)
+ */
+void* CDECL _recalloc(void *mem, size_t num, size_t size)
+{
+    size_t old_size;
+    void *ret;
+
+    if(!mem)
+        return calloc(num, size);
+
+    size = num*size;
+    old_size = _msize(mem);
+
+    ret = realloc(mem, size);
+    if(!ret) {
+        *_errno() = ENOMEM;
+        return NULL;
+    }
+
+    if(size>old_size)
+        memset((BYTE*)ret+old_size, 0, size-old_size);
+    return ret;
+}
 
 /*********************************************************************
  *		__p__amblksiz (MSVCRT.@)
@@ -907,4 +981,31 @@ void msvcrt_destroy_heap(void)
     HeapDestroy(heap);
     if(sb_heap)
         HeapDestroy(sb_heap);
+}
+
+/*********************************************************************
+ *		memcpy_s (MSVCRT.@)
+ */
+int CDECL memcpy_s(void *dest, size_t numberOfElements, const void *src, size_t count)
+{
+    TRACE("(%p %Iu %p %Iu)\n", dest, numberOfElements, src, count);
+
+    if(!count)
+        return 0;
+
+    if (!MSVCRT_CHECK_PMT(dest != NULL)) return EINVAL;
+    if (!MSVCRT_CHECK_PMT(src != NULL))
+    {
+        memset(dest, 0, numberOfElements);
+        return EINVAL;
+    }
+
+    if (!MSVCRT_CHECK_PMT_ERR(count <= numberOfElements, ERANGE))
+    {
+        memset(dest, 0, numberOfElements);
+        return ERANGE;
+    }
+
+    memmove(dest, src, count);
+    return 0;
 }
