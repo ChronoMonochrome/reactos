@@ -67,6 +67,7 @@
 66 stdcall ClipCursor(ptr) NtUserClipCursor
 67 stdcall CloseClipboard() NtUserCloseClipboard
 68 stdcall CloseDesktop(long) NtUserCloseDesktop
+@  stdcall -version=0x601+ CloseTouchInputHandle(ptr)
 69 stdcall CloseWindow(long)
 70 stdcall CloseWindowStation(long) NtUserCloseWindowStation
 71 stdcall CopyAcceleratorTableA(long ptr long)
@@ -562,6 +563,7 @@
 554 stdcall RegisterShellHookWindow(long)
 555 stdcall RegisterSystemThread(long long)
 556 stdcall RegisterTasklist(long) NtUserRegisterTasklist
+@   stdcall -version=0x601+ RegisterTouchWindow(ptr long)
 557 stdcall RegisterUserApiHook(ptr)
 558 stdcall RegisterWindowMessageA(str)
 559 stdcall RegisterWindowMessageW(wstr)
@@ -631,6 +633,7 @@
 621 stdcall SetMessageQueue(long)
 622 stdcall SetParent(long long) NtUserSetParent
 623 stdcall SetProcessDefaultLayout(long)
+@   stdcall -version=0x600+ SetProcessDPIAware()
 624 stdcall SetProcessWindowStation(long) NtUserSetProcessWindowStation
 625 stdcall SetProgmanWindow (long)
 626 stdcall SetPropA(long str long)
