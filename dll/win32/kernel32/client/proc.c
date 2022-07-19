@@ -4949,4 +4949,75 @@ BOOL WINAPI DECLSPEC_HOTPATCH InitializeProcThreadAttributeList( struct _PROC_TH
     return ret;
 }
 
+BOOL WINAPI DECLSPEC_HOTPATCH UpdateProcThreadAttribute( struct _PROC_THREAD_ATTRIBUTE_LIST *list,
+                                                         DWORD flags, DWORD_PTR attr, void *value,
+                                                         SIZE_T size, void *prev_ret, SIZE_T *size_ret )
+{
+    DWORD mask;
+    struct proc_thread_attr *entry;
+
+    if (list->count >= list->size)
+    {
+        SetLastError( ERROR_GEN_FAILURE );
+        return FALSE;
+    }
+
+    switch (attr)
+    {
+    case PROC_THREAD_ATTRIBUTE_PARENT_PROCESS:
+        if (size != sizeof(HANDLE))
+        {
+            SetLastError( ERROR_BAD_LENGTH );
+            return FALSE;
+        }
+        break;
+
+    case PROC_THREAD_ATTRIBUTE_HANDLE_LIST:
+        if ((size / sizeof(HANDLE)) * sizeof(HANDLE) != size)
+        {
+            SetLastError( ERROR_BAD_LENGTH );
+            return FALSE;
+        }
+        break;
+
+    case PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR:
+        if (size != sizeof(PROCESSOR_NUMBER))
+        {
+            SetLastError( ERROR_BAD_LENGTH );
+            return FALSE;
+        }
+        break;
+
+    default:
+        SetLastError( ERROR_NOT_SUPPORTED );
+		return FALSE;
+    }
+
+    mask = 1 << (attr & PROC_THREAD_ATTRIBUTE_NUMBER);
+    if (list->mask & mask)
+    {
+        SetLastError( ERROR_OBJECT_NAME_EXISTS );
+        return FALSE;
+    }
+    list->mask |= mask;
+
+    entry = list->attrs + list->count;
+    entry->attr = attr;
+    entry->size = size;
+    entry->value = value;
+    list->count++;
+    return TRUE;
+}
+
+
+/***********************************************************************
+ *           DeleteProcThreadAttributeList   (kernelbase.@)
+ */
+void WINAPI DECLSPEC_HOTPATCH DeleteProcThreadAttributeList( struct _PROC_THREAD_ATTRIBUTE_LIST *list )
+{
+    return;
+}
+
+
+
 /* EOF */

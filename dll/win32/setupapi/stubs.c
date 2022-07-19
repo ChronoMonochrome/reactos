@@ -172,3 +172,17 @@ SetupDiSetDriverInstallParamsW(
     SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
     return FALSE;
 }
+
+BOOL WINAPI SetupDiGetDevicePropertyW(
+  HDEVINFO         DeviceInfoSet,
+  ULONG_PTR DeviceInfoData,
+  ULONG_PTR PropertyKey,
+  ULONG_PTR      *PropertyType,
+  PBYTE            PropertyBuffer,
+  DWORD            PropertyBufferSize,
+  PDWORD           RequiredSize,
+  DWORD            Flags
+)
+{
+    return FALSE;
+}

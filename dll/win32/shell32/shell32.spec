@@ -467,3 +467,4 @@
 755 stdcall -noname PathIsEqualOrSubFolder(wstr wstr)
 756 stub -noname DeleteFileThumbnail
 757 stdcall -version=0x600+ SHGetStockIconInfo(long long ptr)
+@   stdcall -version=0x600+ SHOpenWithDialog(ptr ptr)

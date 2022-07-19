@@ -260,3 +260,8 @@ add_subdirectory(xinput1_3)
 add_subdirectory(xinput9_1_0)
 add_subdirectory(xmllite)
 add_subdirectory(xolehlp)
+
+add_subdirectory(mf)
+add_subdirectory(mfplat)
+add_subdirectory(mfreadwrite)
+add_subdirectory(ndfapi)

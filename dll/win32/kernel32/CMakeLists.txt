@@ -81,6 +81,7 @@ list(APPEND SOURCE
     wine/profile.c
     wine/res.c
     wine/timezone.c
+    wine/vista.c
     winnls/string/casemap.c
     winnls/string/collation.c
     winnls/string/digitmap.c
