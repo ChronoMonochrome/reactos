@@ -36,16 +36,6 @@ SHFindComputer(LPCITEMIDLIST pidl1, LPCITEMIDLIST pidl2)
     return FALSE;
 }
 
-EXTERN_C HRESULT
-SHGetPropertyStoreForWindow(
-    HWND   hwnd,
-    REFIID riid,
-    void   **ppv
-)
-{
-    FIXME(" SHGetPropertyStoreForWindow() stub\n");
-    return E_FAIL;
-}
 /*
  * Unimplemented
  */
