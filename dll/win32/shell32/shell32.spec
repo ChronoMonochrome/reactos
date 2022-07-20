@@ -313,7 +313,7 @@
 313 stdcall SHGetPathFromIDList(ptr ptr) SHGetPathFromIDListA
 314 stdcall SHGetPathFromIDListA(ptr ptr)
 315 stdcall SHGetPathFromIDListW(ptr ptr)
-@   stdcall -version=0x600+ SHGetPropertyStoreForWindow(ptr long ptr)
+@   stdcall -stub -version=0x600+ SHGetPropertyStoreForWindow(ptr long ptr)
 316 stdcall SHGetSettings(ptr long)
 317 stdcall SHGetSpecialFolderLocation(long long ptr)
 318 stdcall SHGetSpecialFolderPathA(long ptr long long)

@@ -37,7 +37,7 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
     }
     return TRUE;
 }
-
+#if 0
 HRESULT MFEnumDeviceSources(
   PVOID  *pAttributes,
   PVOID  ***pppSourceActivate,
@@ -65,3 +65,4 @@ HRESULT MFGetService(
 {
     return 0;
 }
+#endif
