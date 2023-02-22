@@ -1062,6 +1062,7 @@ MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                                PLARGE_INTEGER Offset)
 {
     ULONG_PTR Entry;
+    BOOLEAN Dirty;
 
     Entry = MmGetPageEntrySectionSegment(Segment, Offset);
     if (Entry == 0)
@@ -1078,7 +1079,11 @@ MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
     {
         KeBugCheck(MEMORY_MANAGEMENT);
     }
-    MmSetPageEntrySectionSegment(Segment, Offset, BUMPREF_SSE(Entry));
+    Dirty = IS_DIRTY_SSE(Entry);
+    Entry = MAKE_SSE(PAGE_FROM_SSE(Entry), SHARE_COUNT_FROM_SSE(Entry) + 1);
+    if (Dirty)
+        Entry = DIRTY_SSE(Entry);
+    MmSetPageEntrySectionSegment(Segment, Offset, Entry);
 }
 
 BOOLEAN
@@ -1109,7 +1114,8 @@ MmUnsharePageEntrySectionSegment(PMEMORY_AREA MemoryArea,
     {
         KeBugCheck(MEMORY_MANAGEMENT);
     }
-    Entry = DECREF_SSE(Entry);
+    Dirty = Dirty || IS_DIRTY_SSE(Entry);
+    Entry = MAKE_SSE(PAGE_FROM_SSE(Entry), SHARE_COUNT_FROM_SSE(Entry) - 1);
     if (Dirty) Entry = DIRTY_SSE(Entry);
 
     if (SHARE_COUNT_FROM_SSE(Entry) > 0)
@@ -1122,7 +1128,7 @@ MmUnsharePageEntrySectionSegment(PMEMORY_AREA MemoryArea,
         return FALSE;
     }
 
-    if (IS_DIRTY_SSE(Entry) && (MemoryArea->VadNode.u.VadFlags.VadType != VadImageMap))
+    if (Dirty && (MemoryArea->VadNode.u.VadFlags.VadType != VadImageMap))
     {
         ASSERT(!Segment->WriteCopy);
         ASSERT(MmGetSavedSwapEntryPage(Page) == 0);
@@ -1133,10 +1139,10 @@ MmUnsharePageEntrySectionSegment(PMEMORY_AREA MemoryArea,
     }
 
     /* Only valid case for shared dirty pages is shared image section */
-    ASSERT(!IS_DIRTY_SSE(Entry) || (Segment->Image.Characteristics & IMAGE_SCN_MEM_SHARED));
+    ASSERT(!Dirty || (Segment->Image.Characteristics & IMAGE_SCN_MEM_SHARED));
 
     SwapEntry = MmGetSavedSwapEntryPage(Page);
-    if (IS_DIRTY_SSE(Entry) && !SwapEntry)
+    if (Dirty && !SwapEntry)
     {
         SwapEntry = MmAllocSwapPage();
         if (!SwapEntry)
@@ -1147,7 +1153,7 @@ MmUnsharePageEntrySectionSegment(PMEMORY_AREA MemoryArea,
         }
     }
 
-    if (IS_DIRTY_SSE(Entry))
+    if (Dirty)
     {
         NTSTATUS Status = MmWriteToSwapPage(SwapEntry, Page);
         if (!NT_SUCCESS(Status))
@@ -4952,8 +4958,6 @@ MmCheckDirtySegment(
 
     ASSERT(Segment->Locked);
 
-    ASSERT((Offset->QuadPart % PAGE_SIZE) == 0);
-
     DPRINT("Checking segment for file %wZ at offset 0x%I64X.\n", &Segment->FileObject->FileName, Offset->QuadPart);
 
     Entry = MmGetPageEntrySectionSegment(Segment, Offset);
@@ -4969,10 +4973,9 @@ MmCheckDirtySegment(
         ASSERT(!Segment->WriteCopy);
         ASSERT(Segment->SegFlags & MM_DATAFILE_SEGMENT);
 
-        /* Insert the cleaned entry back. Mark it as write in progress, and clear the dirty bit. */
-        Entry = MAKE_SSE(PAGE_FROM_SSE(Entry), SHARE_COUNT_FROM_SSE(Entry) + 1);
-        Entry = WRITE_SSE(Entry);
-        MmSetPageEntrySectionSegment(Segment, Offset, Entry);
+        /* Insert the cleaned entry back. Keep one ref to the page so nobody pages it out again behind us */
+        MmSetPageEntrySectionSegment(Segment, Offset,
+                MAKE_SSE(Page << PAGE_SHIFT, SHARE_COUNT_FROM_SSE(Entry) + 1));
 
         /* Tell the other users that we are clean again */
         MmSetCleanAllRmaps(Page);
@@ -5009,7 +5012,7 @@ MmCheckDirtySegment(
             DirtyAgain = IS_DIRTY_SSE(Entry) || MmIsDirtyPageRmap(Page);
         }
 
-        /* Drop the reference we got, deleting the write altogether. */
+        /* Drop the reference we got */
         Entry = MAKE_SSE(Page << PAGE_SHIFT, SHARE_COUNT_FROM_SSE(Entry) - 1);
         if (DirtyAgain)
         {
