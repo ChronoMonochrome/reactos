@@ -1288,13 +1288,13 @@ NTSTATUS
 NTAPI
 MmGetExecuteOptions(IN PULONG ExecuteOptions);
 
-_Success_(return)
-BOOLEAN
+VOID
+NTAPI
 MmDeleteVirtualMapping(
-    _In_opt_ PEPROCESS Process,
-    _In_ PVOID Address,
-    _Out_opt_ BOOLEAN* WasDirty,
-    _Out_opt_ PPFN_NUMBER Page
+    struct _EPROCESS *Process,
+    PVOID Address,
+    BOOLEAN* WasDirty,
+    PPFN_NUMBER Page
 );
 
 /* arch/procsup.c ************************************************************/
