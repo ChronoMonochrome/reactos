@@ -861,21 +861,13 @@ QSI_DEF(SystemTimeOfDayInformation)
     return STATUS_SUCCESS;
 }
 
-/* Class 4 - Path Information (DEPRECATED) */
+/* Class 4 - Path Information */
 QSI_DEF(SystemPathInformation)
 {
-    /*
-     * Since NT 3.51, this information class is trivially implemented.
-     * The path to the NT directory is now stored in KUSER_SHARED_DATA
-     * as the NtSystemRoot member.
-     * Windows Checked builds show the following message and break to
-     * the debugger before failing the function as not implemented.
-     */
-#if DBG
-    DPRINT1("EX: SystemPathInformation now available via SharedUserData\n");
-    // DbgBreakPoint(); // Not needed in ReactOS.
-#endif
-    return STATUS_NOT_IMPLEMENTED;
+    /* FIXME: QSI returns STATUS_BREAKPOINT. Why? */
+    DPRINT1("NtQuerySystemInformation - SystemPathInformation not implemented\n");
+
+    return STATUS_BREAKPOINT;
 }
 
 /* Class 5 - Process Information */
@@ -2838,7 +2830,7 @@ CallQS[] =
     SI_QX(SystemProcessorInformation),
     SI_QX(SystemPerformanceInformation),
     SI_QX(SystemTimeOfDayInformation),
-    SI_QX(SystemPathInformation),
+    SI_QX(SystemPathInformation), /* should be SI_XX */
     SI_QX(SystemProcessInformation),
     SI_QX(SystemCallCountInformation),
     SI_QX(SystemDeviceInformation),
