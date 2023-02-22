@@ -555,13 +555,12 @@ NtSetSystemEnvironmentValueEx(
     _Inout_ PULONG Attributes
 );
 
-__kernel_entry
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemInformation(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    _In_reads_bytes_(SystemInformationLength) PVOID SystemInformation,
+    _In_ PVOID SystemInformation,
     _In_ ULONG SystemInformationLength
 );
 
@@ -1001,8 +1000,8 @@ NTSTATUS
 NTAPI
 ZwSetSystemInformation(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    _In_reads_bytes_(SystemInformationLength) PVOID SystemInformation,
-    _In_ ULONG SystemInformationLength
+    _In_ PVOID SystemInformation,
+    _In_ SIZE_T SystemInformationLength
 );
 
 #ifdef NTOS_MODE_USER
