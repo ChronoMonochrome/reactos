@@ -310,10 +310,7 @@ CcMdlWriteComplete2(
 );
 
 NTSTATUS
-CcRosFlushVacb(
-    _In_ PROS_VACB Vacb,
-    _Out_opt_ PIO_STATUS_BLOCK Iosb
-);
+CcRosFlushVacb(PROS_VACB Vacb, PIO_STATUS_BLOCK Iosb);
 
 NTSTATUS
 CcRosGetVacb(
