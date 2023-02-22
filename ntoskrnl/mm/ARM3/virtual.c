@@ -714,15 +714,10 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
                 if (MiDecrementPageTableReferences((PVOID)Va) == 0)
                 {
                     ASSERT(PointerPde->u.Long != 0);
-
                     /* Delete the PDE proper */
                     MiDeletePde(PointerPde, CurrentProcess);
-
-                    /* Continue with the next PDE */
+                    /* Jump */
                     Va = (ULONG_PTR)MiPdeToAddress(PointerPde + 1);
-
-                    /* Use this to detect address gaps */
-                    PointerPte++;
                     break;
                 }
             }
@@ -738,8 +733,8 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
 
         if (Va > EndingAddress) return;
 
-        /* Check if we exited the loop regularly */
-        AddressGap = (PointerPte != MiAddressToPte(Va));
+        /* Otherwise, we exited because we hit a new PDE boundary, so start over */
+        AddressGap = FALSE;
     }
 }
 
