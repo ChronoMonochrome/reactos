@@ -1182,7 +1182,6 @@ CcRosInitializeFileCache (
         SharedCacheMap->LazyWriteContext = LazyWriterContext;
         SharedCacheMap->SectionSize = FileSizes->AllocationSize;
         SharedCacheMap->FileSize = FileSizes->FileSize;
-        SharedCacheMap->ValidDataLength = FileSizes->ValidDataLength;
         SharedCacheMap->PinAccess = PinAccess;
         SharedCacheMap->DirtyPageThreshold = 0;
         SharedCacheMap->DirtyPages = 0;

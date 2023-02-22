@@ -1201,13 +1201,11 @@ MiCopyFromUserPage(PFN_NUMBER DestPage, const VOID *SrcAddress)
 }
 
 #ifndef NEWCC
-static
 NTSTATUS
 NTAPI
 MiReadPage(PMEMORY_AREA MemoryArea,
            LONGLONG SegOffset,
-           PPFN_NUMBER Page,
-           BOOLEAN IgnoreSize)
+           PPFN_NUMBER Page)
 /*
  * FUNCTION: Read a page for a section backed memory area.
  * PARAMETERS:
@@ -1224,7 +1222,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
     PFILE_OBJECT FileObject = MemoryArea->SectionData.Segment->FileObject;
     LARGE_INTEGER FileOffset;
     KIRQL OldIrql;
-    PFSRTL_ADVANCED_FCB_HEADER FcbHeader = FileObject->FsContext;
 
     FileOffset.QuadPart = MemoryArea->SectionData.Segment->Image.FileOffset + SegOffset;
 
@@ -1233,12 +1230,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
     Status = MmRequestPageMemoryConsumer(MC_USER, FALSE, Page);
     if (!NT_SUCCESS(Status))
         return Status;
-
-    if ((FileOffset.QuadPart > FcbHeader->ValidDataLength.QuadPart) && !IgnoreSize)
-    {
-        /* Quick path : data is not valid; return a zero-page */
-        return STATUS_SUCCESS;
-    }
 
     RtlZeroMemory(MdlBase, sizeof(MdlBase));
     MmInitializeMdl(Mdl, NULL, PAGE_SIZE);
@@ -1659,7 +1650,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         else
         {
             DPRINT("Getting fresh page for file %wZ at offset %I64d.\n", &Segment->FileObject->FileName, Offset.QuadPart);
-            Status = MiReadPage(MemoryArea, Offset.QuadPart, &Page, FALSE);
+            Status = MiReadPage(MemoryArea, Offset.QuadPart, &Page);
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("MiReadPage failed (Status %x)\n", Status);
@@ -4662,7 +4653,7 @@ MmMakePagesResident(
 
             /* FIXME: Read the whole range at once instead of one page at a time */
             /* Ignore file size, as Cc already checked on its side. */
-            Status = MiReadPage(MemoryArea, SegmentOffset.QuadPart, &Page, TRUE);
+            Status = MiReadPage(MemoryArea, SegmentOffset.QuadPart, &Page);
             if (!NT_SUCCESS(Status))
             {
                 /* Reset the Segment entry and fail */

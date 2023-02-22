@@ -324,7 +324,6 @@ CcSetFileSizes (
     OldSectionSize = SharedCacheMap->SectionSize;
     SharedCacheMap->SectionSize = FileSizes->AllocationSize;
     SharedCacheMap->FileSize = FileSizes->FileSize;
-    SharedCacheMap->ValidDataLength = FileSizes->ValidDataLength;
     KeReleaseSpinLock(&SharedCacheMap->CacheMapLock, OldIrql);
 
     if (FileSizes->AllocationSize.QuadPart < OldSectionSize.QuadPart)
