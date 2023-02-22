@@ -108,7 +108,7 @@ MiGrabDataSection(PSECTION_OBJECT_POINTERS SectionObjectPointer)
         }
 
         ASSERT(Segment->SegFlags & MM_DATAFILE_SEGMENT);
-        InterlockedIncrement64(&Segment->RefCount);
+        InterlockedIncrementUL(&Segment->RefCount);
         break;
     }
 
@@ -997,7 +997,7 @@ MmDereferenceSegment(PMM_SECTION_SEGMENT Segment)
     /* Lock the PFN lock because we mess around with SectionObjectPointers */
     OldIrql = MiAcquirePfnLock();
 
-    if (InterlockedDecrement64(Segment->ReferenceCount) > 0)
+    if (InterlockedDecrementUL(Segment->ReferenceCount) > 0)
     {
         /* Nothing to do yet */
         MiReleasePfnLock(OldIrql);
@@ -2038,6 +2038,25 @@ MmpDeleteSection(PVOID ObjectBody)
         ASSERT(ImageSectionObject->RefCount > 0);
         MmDereferenceSegment(ImageSectionObject->Segments);
     }
+#ifdef NEWCC
+    else if (Section->Segment && Section->Segment->Flags & MM_DATAFILE_SEGMENT)
+    {
+        ULONG RefCount = 0;
+        PMM_SECTION_SEGMENT Segment = Section->Segment;
+
+        if (Segment &&
+                (RefCount = InterlockedDecrementUL(&Segment->ReferenceCount)) == 0)
+        {
+            DPRINT("Freeing section segment\n");
+            Section->Segment = NULL;
+            MmFinalizeSegment(Segment);
+        }
+        else
+        {
+            DPRINT("RefCount %d\n", RefCount);
+        }
+    }
+#endif
     else
     {
         PMM_SECTION_SEGMENT Segment = (PMM_SECTION_SEGMENT)Section->Segment;
@@ -3336,7 +3355,7 @@ MmMapViewOfSegment(
         return(Status);
     }
 
-    InterlockedIncrement64(Segment->ReferenceCount);
+    InterlockedIncrementUL(Segment->ReferenceCount);
 
     MArea->SectionData.Segment = Segment;
     MArea->SectionData.ViewOffset.QuadPart = ViewOffset;
