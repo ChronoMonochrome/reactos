@@ -38,8 +38,6 @@ static HANDLE MiBalancerThreadHandle = NULL;
 static KEVENT MiBalancerEvent;
 static KTIMER MiBalancerTimer;
 
-static LONG PageOutThreadActive;
-
 /* FUNCTIONS ****************************************************************/
 
 CODE_SEG("INIT")
@@ -105,16 +103,19 @@ MiTrimMemoryConsumer(ULONG Consumer, ULONG InitialTarget)
         return InitialTarget;
     }
 
+    if (MiMemoryConsumers[Consumer].PagesUsed > MiMemoryConsumers[Consumer].PagesTarget)
+    {
+        /* Consumer page limit exceeded */
+        Target = max(Target, MiMemoryConsumers[Consumer].PagesUsed - MiMemoryConsumers[Consumer].PagesTarget);
+    }
     if (MmAvailablePages < MiMinimumAvailablePages)
     {
         /* Global page limit exceeded */
         Target = (ULONG)max(Target, MiMinimumAvailablePages - MmAvailablePages);
     }
-    else if (MiMemoryConsumers[Consumer].PagesUsed > MiMemoryConsumers[Consumer].PagesTarget)
-    {
-        /* Consumer page limit exceeded */
-        Target = max(Target, MiMemoryConsumers[Consumer].PagesUsed - MiMemoryConsumers[Consumer].PagesTarget);
-    }
+
+    /* Don't be too greedy in one run */
+    Target = min(Target, 256);
 
     if (Target)
     {
@@ -265,7 +266,8 @@ VOID
 NTAPI
 MmRebalanceMemoryConsumers(VOID)
 {
-    if (InterlockedCompareExchange(&PageOutThreadActive, 0, 1) == 0)
+    if (MiBalancerThreadHandle != NULL &&
+        !MiIsBalancerThread())
     {
         KeSetEvent(&MiBalancerEvent, IO_NO_INCREMENT, FALSE);
     }
@@ -365,9 +367,6 @@ MiBalancerThread(PVOID Unused)
                 }
             }
             while (InitialTarget != 0);
-
-            if (Status == STATUS_WAIT_0)
-                InterlockedDecrement(&PageOutThreadActive);
         }
         else
         {
