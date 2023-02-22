@@ -2918,13 +2918,13 @@ NTAPI
 NtQuerySystemInformation(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
     _Out_writes_bytes_to_opt_(SystemInformationLength, *ReturnLength) PVOID SystemInformation,
-    _In_ ULONG SystemInformationLength,
-    _Out_opt_ PULONG ReturnLength)
+    _In_ ULONG Length,
+    _Out_opt_ PULONG UnsafeResultLength)
 {
-    NTSTATUS Status = STATUS_NOT_IMPLEMENTED;
-    ULONG CapturedResultLength = 0;
-    ULONG Alignment = TYPE_ALIGNMENT(ULONG);
     KPROCESSOR_MODE PreviousMode;
+    ULONG ResultLength = 0;
+    ULONG Alignment = TYPE_ALIGNMENT(ULONG);
+    NTSTATUS FStatus = STATUS_NOT_IMPLEMENTED;
 
     PAGED_CODE();
 
@@ -2949,13 +2949,13 @@ NtQuerySystemInformation(
             if (SystemInformationClass == SystemKernelDebuggerInformation)
                 Alignment = TYPE_ALIGNMENT(BOOLEAN);
 
-            ProbeForWrite(SystemInformation, SystemInformationLength, Alignment);
-            if (ReturnLength != NULL)
-                ProbeForWriteUlong(ReturnLength);
+            ProbeForWrite(SystemInformation, Length, Alignment);
+            if (UnsafeResultLength != NULL)
+                ProbeForWriteUlong(UnsafeResultLength);
         }
 
-        if (ReturnLength)
-            *ReturnLength = 0;
+        if (UnsafeResultLength)
+            *UnsafeResultLength = 0;
 
 #if (NTDDI_VERSION < NTDDI_VISTA)
         /*
@@ -2971,22 +2971,22 @@ NtQuerySystemInformation(
         if (CallQS[SystemInformationClass].Query != NULL)
         {
             /* Hand the request to a subhandler */
-            Status = CallQS[SystemInformationClass].Query(SystemInformation,
-                                                          SystemInformationLength,
-                                                          &CapturedResultLength);
+            FStatus = CallQS[SystemInformationClass].Query(SystemInformation,
+                                                           Length,
+                                                           &ResultLength);
 
             /* Save the result length to the caller */
-            if (ReturnLength)
-                *ReturnLength = CapturedResultLength;
+            if (UnsafeResultLength)
+                *UnsafeResultLength = ResultLength;
         }
     }
     _SEH2_EXCEPT(ExSystemExceptionFilter())
     {
-        Status = _SEH2_GetExceptionCode();
+        FStatus = _SEH2_GetExceptionCode();
     }
     _SEH2_END;
 
-    return Status;
+    return FStatus;
 }
 
 __kernel_entry
