@@ -15,13 +15,35 @@
 
 #include <mm/ARM3/miarm.h>
 
-#ifndef _MI_PAGING_LEVELS
-#error "Dude, fix your stuff before using this file"
-#endif
-
 /* GLOBALS *****************************************************************/
+
+#define PA_BIT_PRESENT   (0)
+#define PA_BIT_READWRITE (1)
+#define PA_BIT_USER      (2)
+#define PA_BIT_WT        (3)
+#define PA_BIT_CD        (4)
+#define PA_BIT_ACCESSED  (5)
+#define PA_BIT_DIRTY     (6)
+#define PA_BIT_GLOBAL    (8)
+
+#define PA_PRESENT   (1 << PA_BIT_PRESENT)
+#define PA_READWRITE (1 << PA_BIT_READWRITE)
+#define PA_USER      (1 << PA_BIT_USER)
+#define PA_DIRTY     (1 << PA_BIT_DIRTY)
+#define PA_WT        (1 << PA_BIT_WT)
+#define PA_CD        (1 << PA_BIT_CD)
+#define PA_ACCESSED  (1 << PA_BIT_ACCESSED)
+#define PA_GLOBAL    (1 << PA_BIT_GLOBAL)
+
+#define IS_HYPERSPACE(v)    (((ULONG)(v) >= HYPER_SPACE && (ULONG)(v) <= HYPER_SPACE_END))
+
+#define PTE_TO_PFN(X)  ((X) >> PAGE_SHIFT)
+#define PFN_TO_PTE(X)  ((X) << PAGE_SHIFT)
+
+#define PAGE_MASK(x)		((x)&(~0xfff))
+
 const
-ULONG_PTR
+ULONG
 MmProtectToPteMask[32] =
 {
     //
@@ -157,7 +179,7 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
  */
 {
     PMMPTE PointerPte;
-    MMPTE OldPte;
+    ULONG Pte;
 
     DPRINT("MmDeleteVirtualMapping(%p, %p, %p, %p)\n", Process, Address, WasDirty, Page);
 
@@ -174,11 +196,8 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
             DPRINT1("NULL process given for user-mode mapping at %p\n", Address);
             KeBugCheck(MEMORY_MANAGEMENT);
         }
-#if (_MI_PAGING_LEVELS == 2)
+
         if (!MiSynchronizeSystemPde(MiAddressToPde(Address)))
-#else
-        if (!MiIsPdeForAddressValid(Address))
-#endif
         {
             /* There can't be a page if there is no PDE */
             if (WasDirty)
@@ -215,9 +234,9 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
     }
 
     PointerPte = MiAddressToPte(Address);
-    OldPte.u.Long = InterlockedExchangePte(PointerPte, 0);
+    Pte = InterlockedExchangePte(PointerPte, 0);
 
-    if (OldPte.u.Long == 0)
+    if (Pte == 0)
     {
         /* There was nothing here */
         if (Address < MmSystemRangeStart)
@@ -230,9 +249,9 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
     }
 
     /* It must have been present, or not a swap entry */
-    ASSERT(OldPte.u.Hard.Valid || !FlagOn(OldPte.u.Long, 0x800));
+    ASSERT(FlagOn(Pte, PA_PRESENT) || !FlagOn(Pte, 0x800));
 
-    if (OldPte.u.Hard.Valid)
+    if (FlagOn(Pte, PA_PRESENT))
         KeInvalidateTlbEntry(Address);
 
     if (Address < MmSystemRangeStart)
@@ -250,9 +269,9 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
     }
 
     if (WasDirty)
-        *WasDirty = !!OldPte.u.Hard.Dirty;
+        *WasDirty = FlagOn(Pte, PA_DIRTY);
     if (Page)
-        *Page = OldPte.u.Hard.PageFrameNumber;
+        *Page = PTE_TO_PFN(Pte);
 }
 
 
@@ -264,7 +283,7 @@ MmDeletePageFileMapping(
     SWAPENTRY* SwapEntry)
 {
     PMMPTE PointerPte;
-    MMPTE OldPte;
+    ULONG Pte;
 
     /* This should not be called for kernel space anymore */
     ASSERT(Process != NULL);
@@ -285,11 +304,10 @@ MmDeletePageFileMapping(
     MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
 
     PointerPte = MiAddressToPte(Address);
-    OldPte.u.Long = InterlockedExchangePte(PointerPte, 0);
-    /* This must be a swap entry ! */
-    if (!FlagOn(OldPte.u.Long, 0x800) || OldPte.u.Hard.Valid)
+    Pte = InterlockedExchangePte(PointerPte, 0);
+    if (!FlagOn(Pte, 0x800) || FlagOn(Pte, PA_PRESENT))
     {
-        KeBugCheckEx(MEMORY_MANAGEMENT, OldPte.u.Long, (ULONG_PTR)Process, (ULONG_PTR)Address, 0);
+        KeBugCheckEx(MEMORY_MANAGEMENT, Pte, (ULONG_PTR)Process, (ULONG_PTR)Address, 0);
     }
 
     /* This used to be a non-zero PTE, now we can let the PDE go. */
@@ -304,7 +322,22 @@ MmDeletePageFileMapping(
 
     MiUnlockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
 
-    *SwapEntry = OldPte.u.Long >> 1;
+    *SwapEntry = Pte >> 1;
+}
+
+BOOLEAN
+Mmi386MakeKernelPageTableGlobal(PVOID Address)
+{
+    PMMPDE PointerPde = MiAddressToPde(Address);
+    PMMPTE PointerPte = MiAddressToPte(Address);
+
+    if (PointerPde->u.Hard.Valid == 0)
+    {
+        if(!MiSynchronizeSystemPde(PointerPde))
+            return FALSE;
+        return PointerPte->u.Hard.Valid != 0;
+    }
+    return FALSE;
 }
 
 BOOLEAN
@@ -316,11 +349,7 @@ MmIsPagePresent(PEPROCESS Process, PVOID Address)
     if (Address >= MmSystemRangeStart)
     {
         ASSERT(Process == NULL);
-#if _MI_PAGING_LEVELS == 2
         if (!MiSynchronizeSystemPde(MiAddressToPde(Address)))
-#else
-        if (!MiIsPdeForAddressValid(Address))
-#endif
         {
             /* It can't be present if there is no PDE */
             return FALSE;
@@ -355,20 +384,18 @@ NTAPI
 MmIsDisabledPage(PEPROCESS Process, PVOID Address)
 {
     BOOLEAN Ret;
-    PMMPTE PointerPte;
+    ULONG Pte;
 
     if (Address >= MmSystemRangeStart)
     {
         ASSERT(Process == NULL);
-#if _MI_PAGING_LEVELS == 2
         if (!MiSynchronizeSystemPde(MiAddressToPde(Address)))
-#else
-        if (!MiIsPdeForAddressValid(Address))
-#endif
         {
             /* It's not disabled if it's not present */
             return FALSE;
         }
+
+        Pte = MiAddressToPte(Address)->u.Long;
     }
     else
     {
@@ -385,12 +412,11 @@ MmIsDisabledPage(PEPROCESS Process, PVOID Address)
         }
 
         MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
+
+        Pte = MiAddressToPte(Address)->u.Long;
     }
 
-    PointerPte = MiAddressToPte(Address);
-    Ret = !PointerPte->u.Hard.Valid
-        && !FlagOn(PointerPte->u.Long, 0x800)
-        && (PointerPte->u.Hard.PageFrameNumber != 0);
+    Ret = !FlagOn(Pte, PA_PRESENT) && !FlagOn(Pte, 0x800) && (PAGE_MASK(Pte) != 0);
 
     if (Address < MmSystemRangeStart)
         MiUnlockProcessWorkingSetShared(Process, PsGetCurrentThread());
@@ -403,7 +429,7 @@ NTAPI
 MmIsPageSwapEntry(PEPROCESS Process, PVOID Address)
 {
     BOOLEAN Ret;
-    PMMPTE PointerPte;
+    ULONG Pte;
 
     /* We never set swap entries for kernel addresses */
     if (Address >= MmSystemRangeStart)
@@ -426,8 +452,8 @@ MmIsPageSwapEntry(PEPROCESS Process, PVOID Address)
 
     MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
 
-    PointerPte = MiAddressToPte(Address);
-    Ret = !PointerPte->u.Hard.Valid && FlagOn(PointerPte->u.Long, 0x800);
+    Pte = MiAddressToPte(Address)->u.Long;
+    Ret = !FlagOn(Pte, PA_PRESENT) && FlagOn(Pte, 0x800);
 
     MiUnlockProcessWorkingSetShared(Process, PsGetCurrentThread());
 
@@ -438,7 +464,7 @@ VOID
 NTAPI
 MmGetPageFileMapping(PEPROCESS Process, PVOID Address, SWAPENTRY* SwapEntry)
 {
-    PMMPTE PointerPte;
+    ULONG Pte;
 
     /* We never set swap entries for kernel addresses */
     if (Address >= MmSystemRangeStart)
@@ -463,9 +489,9 @@ MmGetPageFileMapping(PEPROCESS Process, PVOID Address, SWAPENTRY* SwapEntry)
 
     MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
 
-    PointerPte = MiAddressToPte(Address);
-    if (!PointerPte->u.Hard.Valid && FlagOn(PointerPte->u.Long, 0x800))
-        *SwapEntry = PointerPte->u.Long >> 1;
+    Pte = MiAddressToPte(Address)->u.Long;
+    if (!FlagOn(Pte, PA_PRESENT) && FlagOn(Pte, 0x800))
+        *SwapEntry = Pte >> 1;
     else
         *SwapEntry = 0;
 
@@ -479,7 +505,7 @@ MmCreatePageFileMapping(PEPROCESS Process,
                         SWAPENTRY SwapEntry)
 {
     PMMPTE PointerPte;
-    ULONG_PTR Pte;
+    ULONG Pte;
 
     /* This should not be called for kernel space anymore */
     ASSERT(Process != NULL);
@@ -545,10 +571,8 @@ MmCreateVirtualMappingUnsafe(PEPROCESS Process,
             DPRINT1("NULL process given for user-mode mapping at %p\n", Address);
             KeBugCheck(MEMORY_MANAGEMENT);
         }
-#if _MI_PAGING_LEVELS == 2
         if (!MiSynchronizeSystemPde(MiAddressToPde(Address)))
             MiFillSystemPageDirectory(Address, PAGE_SIZE);
-#endif
     }
     else
     {
@@ -607,7 +631,7 @@ MmCreateVirtualMapping(PEPROCESS Process,
     ASSERT((ULONG_PTR)Address % PAGE_SIZE == 0);
     if (!MmIsPageInUse(Page))
     {
-        DPRINT1("Page %lx is not in use\n", Page);
+        DPRINT1("Page at address %x not in use\n", PFN_TO_PTE(Page));
         KeBugCheck(MEMORY_MANAGEMENT);
     }
 
@@ -618,21 +642,15 @@ ULONG
 NTAPI
 MmGetPageProtect(PEPROCESS Process, PVOID Address)
 {
-    PMMPTE PointerPte;
+    ULONG_PTR Pte;
     ULONG Protect;
 
     if (Address >= MmSystemRangeStart)
     {
         ASSERT(Process == NULL);
 
-#if _MI_PAGING_LEVELS == 2
         if (!MiSynchronizeSystemPde(MiAddressToPde(Address)))
-#else
-        if (!MiIsPdeForAddressValid(Address))
-#endif
-        {
             return PAGE_NOACCESS;
-        }
     }
     else
     {
@@ -653,29 +671,34 @@ MmGetPageProtect(PEPROCESS Process, PVOID Address)
         MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
     }
 
-    PointerPte = MiAddressToPte(Address);
+    Pte = MiAddressToPte(Address)->u.Long;
 
-    if (!PointerPte->u.Flush.Valid)
+    if (!(Pte & PA_PRESENT))
     {
         Protect = PAGE_NOACCESS;
     }
     else
     {
-        if (PointerPte->u.Flush.CopyOnWrite)
-            Protect = PAGE_WRITECOPY;
-        else if (PointerPte->u.Flush.Write)
+        if (Pte & PA_READWRITE)
+        {
             Protect = PAGE_READWRITE;
+        }
         else
-            Protect = PAGE_READONLY;
-#if _MI_PAGING_LEVELS >= 3
-        /* PAE & AMD64 long mode support NoExecute bit */
-        if (!PointerPte->u.Flush.NoExecute)
-            Protect <<= 4;
-#endif
-        if (PointerPte->u.Flush.CacheDisable)
+        {
+            Protect = PAGE_EXECUTE_READ;
+        }
+        if (Pte & PA_CD)
+        {
             Protect |= PAGE_NOCACHE;
-        if (PointerPte->u.Flush.WriteThrough)
+        }
+        if (Pte & PA_WT)
+        {
             Protect |= PAGE_WRITETHROUGH;
+        }
+        if (!(Pte & PA_USER))
+        {
+            Protect |= PAGE_SYSTEM;
+        }
     }
 
     if (Address < MmSystemRangeStart)
@@ -690,7 +713,8 @@ MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
 {
     ULONG ProtectionMask;
     PMMPTE PointerPte;
-    MMPTE TempPte, OldPte;
+    MMPTE TempPte;
+    ULONG_PTR Pte;
 
     DPRINT("MmSetPageProtect(Process %p  Address %p  flProtect %x)\n",
            Process, Address, flProtect);
@@ -715,16 +739,16 @@ MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
     TempPte.u.Hard.Accessed = PointerPte->u.Hard.Accessed;
     TempPte.u.Hard.Dirty = PointerPte->u.Hard.Dirty;
 
-    OldPte.u.Long = InterlockedExchangePte(PointerPte, TempPte.u.Long);
+    Pte = InterlockedExchangePte(PointerPte, TempPte.u.Long);
 
     // We should be able to bring a page back from PAGE_NOACCESS
-    if (!OldPte.u.Hard.Valid && (FlagOn(OldPte.u.Long, 0x800) || (OldPte.u.Hard.PageFrameNumber == 0)))
+    if ((Pte & 0x800) || !(Pte >> PAGE_SHIFT))
     {
-        DPRINT1("Invalid Pte %lx\n", OldPte.u.Long);
+        DPRINT1("Invalid Pte %lx\n", Pte);
         KeBugCheck(MEMORY_MANAGEMENT);
     }
 
-    if (OldPte.u.Long != TempPte.u.Long)
+    if (Pte != TempPte.u.Long)
         KeInvalidateTlbEntry(Address);
 
     MiUnlockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
@@ -735,6 +759,7 @@ NTAPI
 MmSetDirtyBit(PEPROCESS Process, PVOID Address, BOOLEAN Bit)
 {
     PMMPTE PointerPte;
+    ULONG Pte;
 
     DPRINT("MmSetDirtyBit(Process %p  Address %p  Bit %x)\n",
            Process, Address, Bit);
@@ -749,14 +774,19 @@ MmSetDirtyBit(PEPROCESS Process, PVOID Address, BOOLEAN Bit)
     MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
 
     PointerPte = MiAddressToPte(Address);
+    Pte = PointerPte->u.Long;
+    if (Bit)
+        Pte |= PA_DIRTY;
+    else
+        Pte &= ~PA_DIRTY;
+    Pte = InterlockedExchangePte(PointerPte, Pte);
+
     // We shouldnl't set dirty bit on non-mapped adresses
-    if (!PointerPte->u.Hard.Valid && (FlagOn(PointerPte->u.Long, 0x800) || (PointerPte->u.Hard.PageFrameNumber == 0)))
+    if ((Pte & 0x800) || !(Pte >> PAGE_SHIFT))
     {
-        DPRINT1("Invalid Pte %lx\n", PointerPte->u.Long);
+        DPRINT1("Invalid Pte %lx\n", Pte);
         KeBugCheck(MEMORY_MANAGEMENT);
     }
-
-    PointerPte->u.Hard.Dirty = !!Bit;
 
     if (!Bit)
         KeInvalidateTlbEntry(Address);
@@ -771,22 +801,5 @@ MmInitGlobalKernelPageDirectory(VOID)
 {
     /* Nothing to do here */
 }
-
-#ifdef _M_IX86
-BOOLEAN
-Mmi386MakeKernelPageTableGlobal(PVOID Address)
-{
-    PMMPDE PointerPde = MiAddressToPde(Address);
-    PMMPTE PointerPte = MiAddressToPte(Address);
-
-    if (PointerPde->u.Hard.Valid == 0)
-    {
-        if (!MiSynchronizeSystemPde(PointerPde))
-            return FALSE;
-        return PointerPte->u.Hard.Valid != 0;
-    }
-    return FALSE;
-}
-#endif
 
 /* EOF */
