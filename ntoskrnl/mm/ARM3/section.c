@@ -833,17 +833,12 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
     PEPROCESS CurrentProcess = PsGetCurrentProcess();
     PAGED_CODE();
 
-    /* Check if we need to lock the address space */
-    if (!Flags) MmLockAddressSpace(&Process->Vm);
-
     /* Check for Mm Region */
     MemoryArea = MmLocateMemoryAreaByAddress(&Process->Vm, BaseAddress);
     if ((MemoryArea) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
     {
         /* Call Mm API */
-        NTSTATUS Status = MiRosUnmapViewOfSection(Process, BaseAddress, Process->ProcessExiting);
-        if (!Flags) MmUnlockAddressSpace(&Process->Vm);
-        return Status;
+        return MiRosUnmapViewOfSection(Process, BaseAddress, Process->ProcessExiting);
     }
 
     /* Check if we should attach to the process */
@@ -854,7 +849,10 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
         Attached = TRUE;
     }
 
-    /* Check if the process is already dead */
+    /* Check if we need to lock the address space */
+    if (!Flags) MmLockAddressSpace(&Process->Vm);
+
+    /* Check if the process is already daed */
     if (Process->VmDeleted)
     {
         /* Fail the call */
@@ -3123,15 +3121,11 @@ MmUnmapViewInSystemSpace(IN PVOID MappedBase)
     PAGED_CODE();
 
     /* Was this mapped by RosMm? */
-    MmLockAddressSpace(MmGetKernelAddressSpace());
     MemoryArea = MmLocateMemoryAreaByAddress(MmGetKernelAddressSpace(), MappedBase);
     if ((MemoryArea) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
     {
-        NTSTATUS Status = MiRosUnmapViewInSystemSpace(MappedBase);
-        MmUnlockAddressSpace(MmGetKernelAddressSpace());
-        return Status;
+        return MiRosUnmapViewInSystemSpace(MappedBase);
     }
-    MmUnlockAddressSpace(MmGetKernelAddressSpace());
 
     /* It was not, call the ARM3 routine */
     return MiUnmapViewInSystemSpace(&MmSession, MappedBase);
