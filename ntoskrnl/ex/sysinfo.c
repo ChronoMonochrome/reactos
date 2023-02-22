@@ -1008,11 +1008,7 @@ QSI_DEF(SystemProcessInformation)
                     else
                     {
                         RtlInitAnsiString(&ImageName, Process->ImageFileName);
-                        Status = RtlAnsiStringToUnicodeString(&SpiCurrent->ImageName, &ImageName, FALSE);
-                        if (!NT_SUCCESS(Status))
-                        {
-                            SpiCurrent->ImageName.Length = 0;
-                        }
+                        RtlAnsiStringToUnicodeString(&SpiCurrent->ImageName, &ImageName, FALSE);
                     }
                 }
                 else
