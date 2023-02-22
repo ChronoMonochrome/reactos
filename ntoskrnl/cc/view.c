@@ -906,17 +906,10 @@ CcFlushCache (
     CCTRACE(CC_API_DEBUG, "SectionObjectPointers=%p FileOffset=0x%I64X Length=%lu\n",
         SectionObjectPointers, FileOffset ? FileOffset->QuadPart : 0LL, Length);
 
-    if (!SectionObjectPointers)
+    if (!SectionObjectPointers || !SectionObjectPointers->SharedCacheMap)
     {
         Status = STATUS_INVALID_PARAMETER;
         goto quit;
-    }
-
-    if (!SectionObjectPointers->SharedCacheMap)
-    {
-        /* Forward this to Mm */
-        MmFlushSegment(SectionObjectPointers, FileOffset, Length, IoStatus);
-        return;
     }
 
     SharedCacheMap = SectionObjectPointers->SharedCacheMap;
@@ -941,14 +934,8 @@ CcFlushCache (
         IoStatus->Information = 0;
     }
 
-    /*
-     * We flush the VACBs that we find here.
-     * If there is no (dirty) VACB, it doesn't mean that there is no data to flush, so we call Mm to be sure.
-     * This is suboptimal, but this is due to the lack of granularity of how we track dirty cache data
-     */
     while (FlushStart < FlushEnd)
     {
-        BOOLEAN DirtyVacb = FALSE;
         PROS_VACB vacb = CcRosLookupVacb(SharedCacheMap, FlushStart);
 
         if (vacb != NULL)
@@ -960,7 +947,6 @@ CcFlushCache (
                 {
                     goto quit;
                 }
-                DirtyVacb = TRUE;
             }
 
             CcRosReleaseVacb(SharedCacheMap, vacb, FALSE, FALSE);
@@ -969,39 +955,11 @@ CcFlushCache (
                 IoStatus->Information += VACB_MAPPING_GRANULARITY;
         }
 
-        if (!DirtyVacb)
-        {
-            IO_STATUS_BLOCK MmIosb;
-            LARGE_INTEGER MmOffset;
-
-            MmOffset.QuadPart = FlushStart;
-
-            if (FlushEnd - (FlushEnd % VACB_MAPPING_GRANULARITY) <= FlushStart)
-            {
-                /* The whole range fits within a VACB chunk. */
-                Status = MmFlushSegment(SectionObjectPointers, &MmOffset, FlushEnd - FlushStart, &MmIosb);
-            }
-            else
-            {
-                ULONG MmLength = VACB_MAPPING_GRANULARITY - (FlushStart % VACB_MAPPING_GRANULARITY);
-                Status = MmFlushSegment(SectionObjectPointers, &MmOffset, MmLength, &MmIosb);
-            }
-
-            if (!NT_SUCCESS(Status))
-                goto quit;
-
-            if (IoStatus)
-                IoStatus->Information += MmIosb.Information;
-        }
-
         if (!NT_SUCCESS(RtlLongLongAdd(FlushStart, VACB_MAPPING_GRANULARITY, &FlushStart)))
         {
             /* We're at the end of file ! */
             break;
         }
-
-        /* Round down to next VACB start now */
-        FlushStart -= FlushStart % VACB_MAPPING_GRANULARITY;
     }
 
 quit:
