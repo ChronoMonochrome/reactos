@@ -254,7 +254,6 @@ MiUnlinkFreeOrZeroedPage(IN PMMPFN Entry)
     ASSERT(MI_PFN_CURRENT_USAGE != MI_USAGE_NOT_SET);
     Entry->PfnUsage = MI_PFN_CURRENT_USAGE;
     memcpy(Entry->ProcessName, MI_PFN_CURRENT_PROCESS_NAME, 16);
-    Entry->CallSite = _ReturnAddress();
     MI_PFN_CURRENT_USAGE = MI_USAGE_NOT_SET;
     MI_SET_PROCESS2("Not Set");
 #endif
@@ -463,7 +462,6 @@ MiRemovePageByColor(IN PFN_NUMBER PageIndex,
     ASSERT(MI_PFN_CURRENT_USAGE != MI_USAGE_NOT_SET);
     Pfn1->PfnUsage = MI_PFN_CURRENT_USAGE;
     memcpy(Pfn1->ProcessName, MI_PFN_CURRENT_PROCESS_NAME, 16);
-    Pfn1->CallSite = _ReturnAddress();
     MI_PFN_CURRENT_USAGE = MI_USAGE_NOT_SET;
     MI_SET_PROCESS2("Not Set");
 #endif
@@ -712,7 +710,6 @@ MiInsertPageInFreeList(IN PFN_NUMBER PageFrameIndex)
 #if MI_TRACE_PFNS
     Pfn1->PfnUsage = MI_USAGE_FREE_PAGE;
     RtlZeroMemory(Pfn1->ProcessName, 16);
-    Pfn1->CallSite = NULL;
 #endif
 }
 
@@ -943,7 +940,6 @@ MiInsertPageInList(IN PMMPFNLIST ListHead,
             ASSERT(MI_PFN_CURRENT_USAGE == MI_USAGE_NOT_SET);
             Pfn1->PfnUsage = MI_USAGE_FREE_PAGE;
             RtlZeroMemory(Pfn1->ProcessName, 16);
-            Pfn1->CallSite = NULL;
 #endif
     }
     else if (ListName == ModifiedPageList)

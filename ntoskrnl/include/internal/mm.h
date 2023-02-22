@@ -285,7 +285,7 @@ void
 MI_SET_PROCESS_USTR(PUNICODE_STRING ustr)
 {
     PWSTR pos, strEnd;
-    ULONG i;
+    int i;
 
     if (!ustr->Buffer || ustr->Length == 0)
     {
@@ -417,7 +417,6 @@ typedef struct _MMPFN
     MI_PFN_USAGES PfnUsage;
     CHAR ProcessName[16];
 #define MI_SET_PFN_PROCESS_NAME(pfn, x) memcpy(pfn->ProcessName, x, min(sizeof(x), sizeof(pfn->ProcessName)))
-    PVOID CallSite;
 #endif
 
     // HACK until WS lists are supported
