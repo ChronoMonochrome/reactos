@@ -1415,6 +1415,13 @@ MmArePagesResident(
 
 NTSTATUS
 NTAPI
+MmMakePagesResident(
+    _In_ PEPROCESS Process,
+    _In_ PVOID Address,
+    _In_ ULONG Length);
+
+NTSTATUS
+NTAPI
 MmMakePagesDirty(
     _In_ PEPROCESS Process,
     _In_ PVOID Address,
@@ -1435,14 +1442,6 @@ MmFlushSegment(
     _In_opt_ PLARGE_INTEGER Offset,
     _In_ ULONG Length,
     _In_opt_ PIO_STATUS_BLOCK Iosb);
-
-NTSTATUS
-NTAPI
-MmMakeDataSectionResident(
-    _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
-    _In_ LONGLONG Offset,
-    _In_ ULONG Length,
-    _In_ PLARGE_INTEGER ValidDataLength);
 
 BOOLEAN
 NTAPI
