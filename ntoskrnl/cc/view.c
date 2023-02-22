@@ -429,6 +429,9 @@ CcRosMarkDirtyVacb (
         CcScheduleLazyWriteScan(FALSE);
     }
     KeReleaseQueuedSpinLock(LockQueueMasterLock, oldIrql);
+
+    /* Tell Mm */
+    MmMakePagesDirty(NULL, Vacb->BaseAddress, Length);
 }
 
 VOID

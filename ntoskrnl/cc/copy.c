@@ -634,11 +634,6 @@ CcCopyWrite (
 
             Buffer = (PVOID)((ULONG_PTR)Buffer + VacbLength);
             CurrentOffset += VacbLength;
-
-            /* Tell Mm */
-            Status = MmMakePagesDirty(NULL, Add2Ptr(Vacb->BaseAddress, VacbOffset), VacbLength);
-            if (!NT_SUCCESS(Status))
-                ExRaiseStatus(Status);
         }
         _SEH2_FINALLY
         {
@@ -886,11 +881,6 @@ CcZeroData (
 
             WriteOffset.QuadPart += VacbLength;
             Length -= VacbLength;
-
-            /* Tell Mm */
-            Status = MmMakePagesDirty(NULL, Add2Ptr(Vacb->BaseAddress, VacbOffset), VacbLength);
-            if (!NT_SUCCESS(Status))
-                ExRaiseStatus(Status);
         }
         _SEH2_FINALLY
         {
