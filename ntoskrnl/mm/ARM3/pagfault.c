@@ -704,16 +704,6 @@ MiResolveDemandZeroFault(IN PVOID Address,
     /* Increment demand zero faults */
     KeGetCurrentPrcb()->MmDemandZeroCount++;
 
-    /* Do we have the lock? */
-    if (HaveLock)
-    {
-        /* Release it */
-        MiReleasePfnLock(OldIrql);
-
-        /* Update performance counters */
-        if (Process > HYDRA_PROCESS) Process->NumberOfPrivatePages++;
-    }
-
     /* Zero the page if need be */
     if (NeedZero) MiZeroPfn(PageFrameNumber);
 
@@ -750,6 +740,19 @@ MiResolveDemandZeroFault(IN PVOID Address,
         /* Windows does these sanity checks */
         ASSERT(Pfn1->u1.Event == 0);
         ASSERT(Pfn1->u3.e1.PrototypePte == 0);
+
+        /* Release it */
+        MiReleasePfnLock(OldIrql);
+
+        /* Update performance counters */
+        if (Process > HYDRA_PROCESS) Process->NumberOfPrivatePages++;
+    }
+
+    /* Add the page to our working set, if it's not a proto PTE */
+    if ((Process > HYDRA_PROCESS) && (PointerPte == MiAddressToPte(Address)))
+    {
+        /* FIXME: Also support session VM scenario */
+        MiInsertInWorkingSetList(&Process->Vm, Address, Protection);
     }
 
     //
@@ -969,6 +972,9 @@ MiResolvePageFileFault(_In_ BOOLEAN StoreInstruction,
         KeSetEvent(Pfn1->u1.Event, IO_NO_INCREMENT, FALSE);
     }
 
+    /* And we can insert this into the working set */
+    MiInsertInWorkingSetList(&CurrentProcess->Vm, FaultingAddress, Protection);
+
     return Status;
 }
 
@@ -986,6 +992,8 @@ MiResolveTransitionFault(IN BOOLEAN StoreInstruction,
     PMMPFN Pfn1;
     MMPTE TempPte;
     PMMPTE PointerToPteForProtoPage;
+    ULONG Protection;
+
     DPRINT("Transition fault on 0x%p with PTE 0x%p in process %s\n",
             FaultingAddress, PointerPte, CurrentProcess->ImageFileName);
 
@@ -1079,8 +1087,9 @@ MiResolveTransitionFault(IN BOOLEAN StoreInstruction,
     ASSERT(PointerPte->u.Hard.Valid == 0);
     ASSERT(PointerPte->u.Trans.Prototype == 0);
     ASSERT(PointerPte->u.Trans.Transition == 1);
+    Protection = TempPte.u.Trans.Protection;
     TempPte.u.Long = (PointerPte->u.Long & ~0xFFF) |
-                     (MmProtectToPteMask[PointerPte->u.Trans.Protection]) |
+                     (MmProtectToPteMask[Protection]) |
                      MiDetermineUserGlobalPteMask(PointerPte);
 
     /* Is the PTE writeable? */
@@ -1099,6 +1108,10 @@ MiResolveTransitionFault(IN BOOLEAN StoreInstruction,
 
     /* Write the valid PTE */
     MI_WRITE_VALID_PTE(PointerPte, TempPte);
+
+    /* If this was a user fault, add it to the working set */
+    if (CurrentProcess > HYDRA_PROCESS)
+        MiInsertInWorkingSetList(&CurrentProcess->Vm, FaultingAddress, Protection);
 
     /* Return success */
     return STATUS_PAGE_FAULT_TRANSITION;
@@ -1241,6 +1254,9 @@ MiResolveProtoPteFault(IN BOOLEAN StoreInstruction,
         Pfn1 = MI_PFN_ELEMENT(PageFrameIndex);
         MiInitializePfn(PageFrameIndex, PointerPte, TRUE);
 
+        /* The caller expects us to release the PFN lock */
+        MiReleasePfnLock(OldIrql);
+
         /* Fix the protection */
         Protection &= ~MM_WRITECOPY;
         Protection |= MM_READWRITE;
@@ -1258,8 +1274,12 @@ MiResolveProtoPteFault(IN BOOLEAN StoreInstruction,
         /* And finally, write the valid PTE */
         MI_WRITE_VALID_PTE(PointerPte, PteContents);
 
-        /* The caller expects us to release the PFN lock */
-        MiReleasePfnLock(OldIrql);
+        /* Add the page to our working set */
+        if (Process > HYDRA_PROCESS)
+        {
+            /* FIXME: Also support session VM scenario */
+            MiInsertInWorkingSetList(&Process->Vm, Address, Protection);
+        }
         return Status;
     }
 
@@ -2239,6 +2259,7 @@ UserFault:
             {
                 PFN_NUMBER PageFrameIndex, OldPageFrameIndex;
                 PMMPFN Pfn1;
+                ProtectionCode = TempPte.u.Soft.Protection;
 
                 LockIrql = MiAcquirePfnLock();
 
@@ -2262,13 +2283,18 @@ UserFault:
 
                 /* And make a new shiny one with our page */
                 MiInitializePfn(PageFrameIndex, PointerPte, TRUE);
+
+                MiReleasePfnLock(LockIrql);
+
                 TempPte.u.Hard.PageFrameNumber = PageFrameIndex;
                 TempPte.u.Hard.Write = 1;
                 TempPte.u.Hard.CopyOnWrite = 0;
 
                 MI_WRITE_VALID_PTE(PointerPte, TempPte);
 
-                MiReleasePfnLock(LockIrql);
+                /* We can now add it to our working set */
+                MiInsertInWorkingSetList(&CurrentProcess->Vm, Address, ProtectionCode);
+
 
                 /* Return the status */
                 MiUnlockProcessWorkingSet(CurrentProcess, CurrentThread);
@@ -2393,6 +2419,7 @@ UserFault:
                 TempPte.u.Soft.Protection = ProtectionCode;
                 MI_WRITE_INVALID_PTE(PointerPte, TempPte);
             }
+            ProtectionCode = PointerPte->u.Soft.Protection;
 
             /* Lock the PFN database since we're going to grab a page */
             OldIrql = MiAcquirePfnLock();
@@ -2424,14 +2451,14 @@ UserFault:
             /* Initialize the PFN entry now */
             MiInitializePfn(PageFrameIndex, PointerPte, 1);
 
+            /* And be done with the lock */
+            MiReleasePfnLock(OldIrql);
+
             /* Increment the count of pages in the process */
             CurrentProcess->NumberOfPrivatePages++;
 
             /* One more demand-zero fault */
-            KeGetCurrentPrcb()->MmDemandZeroCount++;
-
-            /* And we're done with the lock */
-            MiReleasePfnLock(OldIrql);
+            InterlockedIncrement(&KeGetCurrentPrcb()->MmDemandZeroCount);
 
             /* Fault on user PDE, or fault on user PTE? */
             if (PointerPte <= MiHighestUserPte)
@@ -2458,6 +2485,9 @@ UserFault:
             MI_WRITE_VALID_PTE(PointerPte, TempPte);
             Pfn1 = MI_PFN_ELEMENT(PageFrameIndex);
             ASSERT(Pfn1->u1.Event == NULL);
+
+            /* We can now insert it into the working set */
+            MiInsertInWorkingSetList(&CurrentProcess->Vm, Address, ProtectionCode);
 
             /* Demand zero */
             ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
