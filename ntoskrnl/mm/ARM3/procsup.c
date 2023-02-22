@@ -35,17 +35,9 @@ MiCreatePebOrTeb(IN PEPROCESS Process,
     ULONG AlignedSize;
     LARGE_INTEGER CurrentTime;
 
-    Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-    if (!NT_SUCCESS(Status))
-        return Status;
-
     /* Allocate a VAD */
     Vad = ExAllocatePoolWithTag(NonPagedPool, sizeof(MMVAD_LONG), 'ldaV');
-    if (!Vad)
-    {
-        Status = STATUS_NO_MEMORY;
-        goto FailPath;
-    }
+    if (!Vad) return STATUS_NO_MEMORY;
 
     /* Setup the primary flags with the size, and make it commited, private, RW */
     Vad->u.LongFlags = 0;
@@ -102,18 +94,18 @@ MiCreatePebOrTeb(IN PEPROCESS Process,
     if (!NT_SUCCESS(Status))
     {
         ExFreePoolWithTag(Vad, 'ldaV');
-        Status = STATUS_NO_MEMORY;
-        goto FailPath;
+        return STATUS_NO_MEMORY;
     }
 
+    Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
+    if (!NT_SUCCESS(Status))
+    {
+        ExFreePoolWithTag(Vad, 'ldaV');
+        return Status;
+    }
 
     /* Success */
     return STATUS_SUCCESS;
-
-FailPath:
-    PsReturnProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-
-    return Status;
 }
 
 VOID
@@ -867,23 +859,12 @@ MiInsertSharedUserPageVad(
     ULONG_PTR BaseAddress;
     NTSTATUS Status;
 
-    if (Process->QuotaBlock != NULL)
-    {
-        Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-        if (!NT_SUCCESS(Status))
-        {
-            DPRINT1("Ran out of quota.\n");
-            return Status;
-        }
-    }
-
     /* Allocate a VAD */
     Vad = ExAllocatePoolWithTag(NonPagedPool, sizeof(MMVAD_LONG), 'ldaV');
     if (Vad == NULL)
     {
         DPRINT1("Failed to allocate VAD for shared user page\n");
-        Status = STATUS_INSUFFICIENT_RESOURCES;
-        goto FailPath;
+        return STATUS_INSUFFICIENT_RESOURCES;
     }
 
     /* Setup the primary flags with the size, and make it private, RO */
@@ -917,17 +898,23 @@ MiInsertSharedUserPageVad(
     {
         DPRINT1("Failed to insert shared user VAD\n");
         ExFreePoolWithTag(Vad, 'ldaV');
-        goto FailPath;
+        return Status;
     }
+
+    if (Process->QuotaBlock != NULL)
+    {
+        Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
+        if (!NT_SUCCESS(Status))
+        {
+            DPRINT1("Ran out of quota.\n");
+            ExFreePoolWithTag(Vad, 'ldaV');
+            return Status;
+        }
+    }
+
 
     /* Success */
     return STATUS_SUCCESS;
-
-FailPath:
-    if (Process->QuotaBlock != NULL)
-        PsReturnProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-
-    return Status;
 }
 #endif
 
