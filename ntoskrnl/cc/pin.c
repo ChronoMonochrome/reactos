@@ -581,6 +581,7 @@ CcUnpinDataForThread (
     IN	ERESOURCE_THREAD ResourceThreadId)
 {
     PINTERNAL_BCB iBcb = Bcb;
+    PROS_SHARED_CACHE_MAP SharedCacheMap;
 
     CCTRACE(CC_API_DEBUG, "Bcb=%p ResourceThreadId=%lu\n", Bcb, ResourceThreadId);
 
@@ -590,7 +591,8 @@ CcUnpinDataForThread (
         iBcb->PinCount--;
     }
 
-    CcpDereferenceBcb(iBcb->Vacb->SharedCacheMap, iBcb);
+    SharedCacheMap = iBcb->Vacb->SharedCacheMap;
+    CcpDereferenceBcb(SharedCacheMap, iBcb);
 }
 
 /*
