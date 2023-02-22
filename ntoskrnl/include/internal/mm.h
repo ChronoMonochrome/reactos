@@ -1064,7 +1064,8 @@ MmCreateVirtualMapping(
     struct _EPROCESS* Process,
     PVOID Address,
     ULONG flProtect,
-    PFN_NUMBER Page
+    PPFN_NUMBER Pages,
+    ULONG PageCount
 );
 
 NTSTATUS
@@ -1073,7 +1074,8 @@ MmCreateVirtualMappingUnsafe(
     struct _EPROCESS* Process,
     PVOID Address,
     ULONG flProtect,
-    PFN_NUMBER Page
+    PPFN_NUMBER Pages,
+    ULONG PageCount
 );
 
 ULONG
@@ -1111,6 +1113,13 @@ MmInitGlobalKernelPageDirectory(VOID);
 
 VOID
 NTAPI
+MmGetPageFileMapping(
+	struct _EPROCESS *Process,
+	PVOID Address,
+	SWAPENTRY* SwapEntry);
+
+VOID
+NTAPI
 MmDeletePageFileMapping(
     struct _EPROCESS *Process,
     PVOID Address,
@@ -1125,16 +1134,16 @@ MmCreatePageFileMapping(
     SWAPENTRY SwapEntry
 );
 
-VOID
-NTAPI
-MmGetPageFileMapping(
-    PEPROCESS Process,
-    PVOID Address,
-    SWAPENTRY *SwapEntry);
-
 BOOLEAN
 NTAPI
 MmIsPageSwapEntry(
+    struct _EPROCESS *Process,
+    PVOID Address
+);
+
+VOID
+NTAPI
+MmSetDirtyPage(
     struct _EPROCESS *Process,
     PVOID Address
 );
@@ -1177,12 +1186,6 @@ MmSetCleanPage(
     struct _EPROCESS *Process,
     PVOID Address
 );
-
-VOID
-NTAPI
-MmSetDirtyBit(PEPROCESS Process, PVOID Address, BOOLEAN Bit);
-#define MmSetCleanPage(__P, __A) MmSetDirtyBit(__P, __A, FALSE)
-#define MmSetDirtyPage(__P, __A) MmSetDirtyBit(__P, __A, TRUE)
 
 VOID
 NTAPI
@@ -1237,6 +1240,21 @@ MmDeleteVirtualMapping(
     BOOLEAN* WasDirty,
     PPFN_NUMBER Page
 );
+
+BOOLEAN
+NTAPI
+MmIsDirtyPage(
+    struct _EPROCESS *Process,
+    PVOID Address
+);
+
+VOID
+NTAPI
+MmClearPageAccessedBit(PEPROCESS Process, PVOID Address);
+
+BOOLEAN
+NTAPI
+MmIsPageAccessed(PEPROCESS Process, PVOID Address);
 
 /* wset.c ********************************************************************/
 

@@ -102,26 +102,18 @@ GetEntry:
 
     MmLockAddressSpace(AddressSpace);
 
-    MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, Address);
-    if (MemoryArea == NULL || MemoryArea->DeleteInProgress)
+    if (MmGetPfnForProcess(Process, Address) != Page)
     {
+        /* This changed in the short window where we didn't have any locks */
         MmUnlockAddressSpace(AddressSpace);
         ExReleaseRundownProtection(&Process->RundownProtect);
         ObDereferenceObject(Process);
         goto GetEntry;
     }
 
-
-    /* Attach to it, if needed */
-    ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
-    if (Process != PsInitialSystemProcess)
-        KeAttachProcess(&Process->Pcb);
-
-    if (MmGetPfnForProcess(Process, Address) != Page)
+    MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, Address);
+    if (MemoryArea == NULL || MemoryArea->DeleteInProgress)
     {
-        /* This changed in the short window where we didn't have any locks */
-        if (Process != PsInitialSystemProcess)
-            KeDetachProcess();
         MmUnlockAddressSpace(AddressSpace);
         ExReleaseRundownProtection(&Process->RundownProtect);
         ObDereferenceObject(Process);
@@ -148,8 +140,6 @@ GetEntry:
         {
             /* The segment is being read or something. Give up */
             MmUnlockSectionSegment(Segment);
-            if (Process != PsInitialSystemProcess)
-                KeDetachProcess();
             MmUnlockAddressSpace(AddressSpace);
             ExReleaseRundownProtection(&Process->RundownProtect);
             ObDereferenceObject(Process);
@@ -170,6 +160,11 @@ GetEntry:
             /* This page is private to the process */
             MmUnlockSectionSegment(Segment);
 
+            /* Attach to it, if needed */
+            ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
+            if (Process != PsInitialSystemProcess)
+                KeAttachProcess(&Process->Pcb);
+
             /* Check if we should write it back to the page file */
             SwapEntry = MmGetSavedSwapEntryPage(Page);
 
@@ -184,7 +179,7 @@ GetEntry:
                             Address, NULL);
 
                     /* We can't, so let this page in the Process VM */
-                    MmCreateVirtualMapping(Process, Address, Region->Protect, Page);
+                    MmCreateVirtualMapping(Process, Address, Region->Protect, &Page, 1);
                     MmInsertRmap(Page, Process, Address);
                     MmSetDirtyPage(Process, Address);
 
@@ -224,7 +219,7 @@ GetEntry:
                     MmFreeSwapPage(SwapEntry);
 
                     /* We can't, so let this page in the Process VM */
-                    MmCreateVirtualMapping(Process, Address, Region->Protect, Page);
+                    MmCreateVirtualMapping(Process, Address, Region->Protect, &Page, 1);
                     MmInsertRmap(Page, Process, Address);
                     MmSetDirtyPage(Process, Address);
 
@@ -246,6 +241,7 @@ GetEntry:
             }
 
             /* We can finally let this page go */
+
             MmUnlockAddressSpace(AddressSpace);
             if (Process != PsInitialSystemProcess)
                 KeDetachProcess();
@@ -266,8 +262,6 @@ GetEntry:
         Released = MmUnsharePageEntrySectionSegment(MemoryArea, Segment, &Offset, Dirty, TRUE, NULL);
 
         MmUnlockSectionSegment(Segment);
-        if (Process != PsInitialSystemProcess)
-            KeDetachProcess();
         MmUnlockAddressSpace(AddressSpace);
 
         ExReleaseRundownProtection(&Process->RundownProtect);
