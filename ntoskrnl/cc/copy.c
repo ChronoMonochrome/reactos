@@ -210,12 +210,12 @@ CcPerformReadAhead(
                 CurrentOffset % VACB_MAPPING_GRANULARITY, PartialLength);
         if (!NT_SUCCESS(Status))
         {
-            CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE);
+            CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE, FALSE);
             DPRINT1("Failed to read data: %lx!\n", Status);
             goto Clear;
         }
 
-        CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE);
+        CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
 
         Length -= PartialLength;
         CurrentOffset += PartialLength;
@@ -237,12 +237,12 @@ CcPerformReadAhead(
         Status = CcRosEnsureVacbResident(Vacb, TRUE, FALSE, 0, PartialLength);
         if (!NT_SUCCESS(Status))
         {
-            CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE);
+            CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE, FALSE);
             DPRINT1("Failed to read data: %lx!\n", Status);
             goto Clear;
         }
 
-        CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE);
+        CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
 
         Length -= PartialLength;
         CurrentOffset += PartialLength;
@@ -538,7 +538,7 @@ CcCopyRead (
         }
         _SEH2_FINALLY
         {
-            CcRosReleaseVacb(SharedCacheMap, Vacb, FALSE, FALSE);
+            CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
         }
         _SEH2_END;
     }
@@ -643,7 +643,7 @@ CcCopyWrite (
         _SEH2_FINALLY
         {
             /* Do not mark the VACB as dirty if an exception was raised */
-            CcRosReleaseVacb(SharedCacheMap, Vacb, !_SEH2_AbnormalTermination(), FALSE);
+            CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, !_SEH2_AbnormalTermination(), FALSE);
         }
         _SEH2_END;
     }
@@ -895,7 +895,7 @@ CcZeroData (
         _SEH2_FINALLY
         {
             /* Do not mark the VACB as dirty if an exception was raised */
-            CcRosReleaseVacb(SharedCacheMap, Vacb, !_SEH2_AbnormalTermination(), FALSE);
+            CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, !_SEH2_AbnormalTermination(), FALSE);
         }
         _SEH2_END;
     }
