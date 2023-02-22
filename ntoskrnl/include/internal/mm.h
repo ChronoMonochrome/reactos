@@ -933,6 +933,13 @@ VOID
 NTAPI
 MmInitializeRmapList(VOID);
 
+VOID
+NTAPI
+MmSetCleanAllRmaps(PFN_NUMBER Page);
+BOOLEAN
+NTAPI
+MmIsDirtyPageRmap(PFN_NUMBER Page);
+
 NTSTATUS
 NTAPI
 MmPageOutPhysicalAddress(PFN_NUMBER Page);
