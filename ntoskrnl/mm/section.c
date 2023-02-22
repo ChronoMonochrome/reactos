@@ -1054,7 +1054,6 @@ MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                                PLARGE_INTEGER Offset)
 {
     ULONG_PTR Entry;
-    BOOLEAN Dirty;
 
     Entry = MmGetPageEntrySectionSegment(Segment, Offset);
     if (Entry == 0)
@@ -1071,10 +1070,7 @@ MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
     {
         KeBugCheck(MEMORY_MANAGEMENT);
     }
-    Dirty = IS_DIRTY_SSE(Entry);
     Entry = MAKE_SSE(PAGE_FROM_SSE(Entry), SHARE_COUNT_FROM_SSE(Entry) + 1);
-    if (Dirty)
-        Entry = DIRTY_SSE(Entry);
     MmSetPageEntrySectionSegment(Segment, Offset, Entry);
 }
 
