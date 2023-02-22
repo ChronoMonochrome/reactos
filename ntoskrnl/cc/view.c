@@ -262,15 +262,6 @@ CcRosFlushDirtyPages (
 
         ASSERT(current->Dirty);
 
-        /* Do not lazy-write the same file concurrently. Fastfat ASSERTS on that */
-        if (current->SharedCacheMap->Flags & SHARED_CACHE_MAP_IN_LAZYWRITE)
-        {
-            CcRosVacbDecRefCount(current);
-            continue;
-        }
-
-        current->SharedCacheMap->Flags |= SHARED_CACHE_MAP_IN_LAZYWRITE;
-
         KeReleaseQueuedSpinLock(LockQueueMasterLock, OldIrql);
 
         Locked = current->SharedCacheMap->Callbacks->AcquireForLazyWrite(
@@ -281,7 +272,6 @@ CcRosFlushDirtyPages (
             ASSERT(!Wait);
             OldIrql = KeAcquireQueuedSpinLock(LockQueueMasterLock);
             CcRosVacbDecRefCount(current);
-            current->SharedCacheMap->Flags &= ~SHARED_CACHE_MAP_IN_LAZYWRITE;
             continue;
         }
 
@@ -296,8 +286,6 @@ CcRosFlushDirtyPages (
          * The refcount is decremented atomically. So this is OK. */
         CcRosVacbDecRefCount(current);
         OldIrql = KeAcquireQueuedSpinLock(LockQueueMasterLock);
-
-        current->SharedCacheMap->Flags &= ~SHARED_CACHE_MAP_IN_LAZYWRITE;
 
         if (!NT_SUCCESS(Status) && (Status != STATUS_END_OF_FILE) &&
             (Status != STATUS_MEDIA_WRITE_PROTECTED))
