@@ -906,7 +906,6 @@ MmInitializeProcessAddressSpace(IN PEPROCESS Process,
     NTSTATUS Status = STATUS_SUCCESS;
     SIZE_T ViewSize = 0;
     PVOID ImageBase = 0;
-    MMPTE TempPte;
     PMMPTE PointerPte;
     KIRQL OldIrql;
     PMMPDE PointerPde;
