@@ -46,6 +46,60 @@ WINE_DEFAULT_DEBUG_CHANNEL(threadpool);
 
  /* INCLUDES *****************************************************************/
 
+#ifdef __GNUC__
+#include <ndk/rtlfuncs.h>
+#else
+
+NTSYSAPI NTSTATUS  WINAPI RtlSleepConditionVariableCS(RTL_CONDITION_VARIABLE*,RTL_CRITICAL_SECTION*,const LARGE_INTEGER*);
+NTSYSAPI void      WINAPI RtlWakeAllConditionVariable(RTL_CONDITION_VARIABLE *);
+NTSYSAPI void      WINAPI RtlWakeConditionVariable(RTL_CONDITION_VARIABLE *);
+NTSYSAPI void      WINAPI RtlInitializeConditionVariable(RTL_CONDITION_VARIABLE *);
+#endif
+
+#ifndef __GNUC__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+typedef struct _TP_POOL TP_POOL, *PTP_POOL;
+typedef struct _TP_WORK TP_WORK, *PTP_WORK;
+typedef struct _TP_CALLBACK_INSTANCE TP_CALLBACK_INSTANCE, *PTP_CALLBACK_INSTANCE;
+typedef struct _TP_TIMER TP_TIMER, *PTP_TIMER;
+typedef struct _TP_WAIT TP_WAIT, *PTP_WAIT;
+typedef struct _TP_IO TP_IO, *PTP_IO;
+
+typedef DWORD TP_WAIT_RESULT;
+typedef DWORD TP_VERSION, *PTP_VERSION;
+
+typedef VOID
+(NTAPI *PTP_WORK_CALLBACK)(
+  _Inout_ PTP_CALLBACK_INSTANCE Instance,
+  _Inout_opt_ PVOID Context,
+  _Inout_ PTP_WORK Work);
+
+typedef struct _TP_CLEANUP_GROUP TP_CLEANUP_GROUP, *PTP_CLEANUP_GROUP;
+
+typedef VOID
+(NTAPI *PTP_SIMPLE_CALLBACK)(
+  _Inout_ PTP_CALLBACK_INSTANCE Instance,
+  _Inout_opt_ PVOID Context);
+
+typedef VOID
+(NTAPI *PTP_CLEANUP_GROUP_CANCEL_CALLBACK)(
+  _Inout_opt_ PVOID ObjectContext,
+  _Inout_opt_ PVOID CleanupContext);
+
+typedef VOID (NTAPI *PTP_TIMER_CALLBACK)(PTP_CALLBACK_INSTANCE,PVOID,PTP_TIMER);
+typedef VOID (NTAPI *PTP_WAIT_CALLBACK)(PTP_CALLBACK_INSTANCE,PVOID,PTP_WAIT,TP_WAIT_RESULT);
+typedef VOID (NTAPI *PTP_WIN32_IO_CALLBACK)(PTP_CALLBACK_INSTANCE,PVOID,PVOID,ULONG,ULONG_PTR,PTP_IO);
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 #include <rtl_vista.h>
 
 #define NDEBUG

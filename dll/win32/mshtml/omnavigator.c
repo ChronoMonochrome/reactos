@@ -18,7 +18,8 @@
 
 #include "mshtml_private.h"
 
-#ifndef __REACTOS__
+#ifndef __GNUC__
+#ifdef __REACTOS__
 /* HACK This is a Vista+ API */
 static INT WINAPI LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD flags )
 {
@@ -26,6 +27,7 @@ static INT WINAPI LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD fla
 
     return GetLocaleInfoW( lcid, LOCALE_SNAME | LOCALE_NOUSEROVERRIDE, name, count );
 }
+#endif
 #endif
 
 typedef struct HTMLPluginsCollection HTMLPluginsCollection;
