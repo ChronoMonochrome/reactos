@@ -1287,6 +1287,7 @@ QSI_DEF(SystemNonPagedPoolInformation)
     return STATUS_NOT_IMPLEMENTED;
 }
 
+
 /* Class 16 - Handle Information */
 QSI_DEF(SystemHandleInformation)
 {
@@ -2069,6 +2070,7 @@ QSI_DEF(SystemCurrentTimeZoneInformation)
     return STATUS_SUCCESS;
 }
 
+
 SSI_DEF(SystemCurrentTimeZoneInformation)
 {
     /* Check user buffer's size */
@@ -2227,6 +2229,7 @@ Leave:
     return STATUS_SUCCESS;
 }
 
+
 /* Class 46 - Set time slip event */
 SSI_DEF(SystemTimeSlipNotification)
 {
@@ -2268,6 +2271,7 @@ SSI_DEF(SystemSessionCreate)
     return Status;
 }
 
+
 /* Class 48 - Delete an existing session (TSE) */
 SSI_DEF(SystemSessionDetach)
 {
@@ -2289,6 +2293,7 @@ SSI_DEF(SystemSessionDetach)
     return MmSessionDelete(SessionId);
 }
 
+
 /* Class 49 - UNKNOWN */
 QSI_DEF(SystemSessionInformation)
 {
@@ -2296,6 +2301,7 @@ QSI_DEF(SystemSessionInformation)
     DPRINT1("NtQuerySystemInformation - SystemSessionInformation not implemented\n");
     return STATUS_NOT_IMPLEMENTED;
 }
+
 
 /* Class 50 - System range start address */
 QSI_DEF(SystemRangeStartInformation)
@@ -2318,12 +2324,14 @@ QSI_DEF(SystemVerifierInformation)
     return STATUS_NOT_IMPLEMENTED;
 }
 
+
 SSI_DEF(SystemVerifierInformation)
 {
     /* FIXME */
     DPRINT1("NtSetSystemInformation - SystemVerifierInformation not implemented\n");
     return STATUS_NOT_IMPLEMENTED;
 }
+
 
 /* Class 52 */
 SSI_DEF(SystemVerifierThunkExtend)
@@ -2333,13 +2341,15 @@ SSI_DEF(SystemVerifierThunkExtend)
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/* Class 53 - A session's processes */
+
+/* Class 53 - A session's processes  */
 QSI_DEF(SystemSessionProcessesInformation)
 {
     /* FIXME */
     DPRINT1("NtQuerySystemInformation - SystemSessionProcessInformation not implemented\n");
     return STATUS_NOT_IMPLEMENTED;
 }
+
 
 /* Class 54 - Load & map in system space */
 SSI_DEF(SystemLoadGdiDriverInSystemSpaceInformation)
@@ -2349,7 +2359,8 @@ SSI_DEF(SystemLoadGdiDriverInSystemSpaceInformation)
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/* Class 55 - NUMA processor information */
+
+/* Class 55 - NUMA processor information  */
 QSI_DEF(SystemNumaProcessorMap)
 {
     ULONG MaxEntries, Node;
@@ -2395,7 +2406,8 @@ QSI_DEF(SystemNumaProcessorMap)
     return STATUS_SUCCESS;
 }
 
-/* Class 56 - Prefetcher information */
+
+/* Class 56 - Prefetcher information  */
 QSI_DEF(SystemPrefetcherInformation)
 {
     /* FIXME */
@@ -2403,7 +2415,8 @@ QSI_DEF(SystemPrefetcherInformation)
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/* Class 57 - Extended process information */
+
+/* Class 57 - Extended process information  */
 QSI_DEF(SystemExtendedProcessInformation)
 {
     /* FIXME */
@@ -2411,7 +2424,8 @@ QSI_DEF(SystemExtendedProcessInformation)
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/* Class 58 - Recommended shared data alignment */
+
+/* Class 58 - Recommended shared ata alignment  */
 QSI_DEF(SystemRecommendedSharedDataAlignment)
 {
     /* FIXME */
@@ -2419,7 +2433,8 @@ QSI_DEF(SystemRecommendedSharedDataAlignment)
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/* Class 60 - NUMA memory information */
+
+/* Class 60 - NUMA memory information  */
 QSI_DEF(SystemNumaAvailableMemory)
 {
     ULONG MaxEntries, Node;
@@ -2473,7 +2488,7 @@ QSI_DEF(SystemNumaAvailableMemory)
     return STATUS_SUCCESS;
 }
 
-/* Class 64 - Extended handle information */
+/* Class 64 - Extended handle information  */
 QSI_DEF(SystemExtendedHandleInformation)
 {
     PSYSTEM_HANDLE_INFORMATION_EX HandleInformation;
@@ -2604,7 +2619,7 @@ QSI_DEF(SystemExtendedHandleInformation)
     return Status;
 }
 
-/* Class 70 - System object security mode information */
+/* Class 70 - System object security mode information  */
 QSI_DEF(SystemObjectSecurityMode)
 {
     PULONG ObjectSecurityInfo = (PULONG)Buffer;
@@ -2620,7 +2635,7 @@ QSI_DEF(SystemObjectSecurityMode)
     return STATUS_SUCCESS;
 }
 
-/* Class 73 - Logical processor information */
+/* Class 73 - Logical processor information  */
 QSI_DEF(SystemLogicalProcessorInformation)
 {
     LONG i;
@@ -2704,7 +2719,7 @@ QSI_DEF(SystemLogicalProcessorInformation)
     return Status;
 }
 
-/* Class 76 - System firmware table information */
+/* Class 76 - System firmware table information  */
 QSI_DEF(SystemFirmwareTableInformation)
 {
     PSYSTEM_FIRMWARE_TABLE_INFORMATION SysFirmwareInfo = (PSYSTEM_FIRMWARE_TABLE_INFORMATION)Buffer;
@@ -2824,7 +2839,7 @@ struct _QSSI_CALLS
 
 static
 QSSI_CALLS
-CallQS[] =
+CallQS [] =
 {
     SI_QX(SystemBasicInformation),
     SI_QX(SystemProcessorInformation),
@@ -2907,7 +2922,7 @@ CallQS[] =
 
 C_ASSERT(SystemBasicInformation == 0);
 #define MIN_SYSTEM_INFO_CLASS (SystemBasicInformation)
-#define MAX_SYSTEM_INFO_CLASS RTL_NUMBER_OF(CallQS)
+#define MAX_SYSTEM_INFO_CLASS (sizeof(CallQS) / sizeof(CallQS[0]))
 
 /*
  * @implemented
@@ -2934,7 +2949,7 @@ NtQuerySystemInformation(
     {
 #if (NTDDI_VERSION >= NTDDI_VISTA)
         /*
-         * Check whether the request is valid.
+         * Check if the request is valid.
          */
         if (SystemInformationClass < MIN_SYSTEM_INFO_CLASS ||
             SystemInformationClass >= MAX_SYSTEM_INFO_CLASS)
@@ -2959,7 +2974,7 @@ NtQuerySystemInformation(
 
 #if (NTDDI_VERSION < NTDDI_VISTA)
         /*
-         * Check whether the request is valid.
+         * Check if the request is valid.
          */
         if (SystemInformationClass < MIN_SYSTEM_INFO_CLASS ||
             SystemInformationClass >= MAX_SYSTEM_INFO_CLASS)
@@ -2968,12 +2983,14 @@ NtQuerySystemInformation(
         }
 #endif
 
-        if (CallQS[SystemInformationClass].Query != NULL)
+        if (NULL != CallQS [SystemInformationClass].Query)
         {
-            /* Hand the request to a subhandler */
-            FStatus = CallQS[SystemInformationClass].Query(SystemInformation,
-                                                           Length,
-                                                           &ResultLength);
+            /*
+             * Hand the request to a subhandler.
+             */
+            FStatus = CallQS [SystemInformationClass].Query(SystemInformation,
+                                                            Length,
+                                                            &ResultLength);
 
             /* Save the result length to the caller */
             if (UnsafeResultLength)
@@ -3006,7 +3023,8 @@ NtSetSystemInformation (IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     _SEH2_TRY
     {
         /*
-         * If called from user mode, check possible unsafe arguments.
+         * If called from user mode, check
+         * possible unsafe arguments.
          */
         if (PreviousMode != KernelMode)
         {
@@ -3014,16 +3032,18 @@ NtSetSystemInformation (IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
         }
 
         /*
-         * Check whether the request is valid.
+         * Check the request is valid.
          */
         if ((SystemInformationClass >= MIN_SYSTEM_INFO_CLASS) &&
             (SystemInformationClass < MAX_SYSTEM_INFO_CLASS))
         {
-            if (CallQS[SystemInformationClass].Set != NULL)
+            if (NULL != CallQS [SystemInformationClass].Set)
             {
-                /* Hand the request to a subhandler */
-                Status = CallQS[SystemInformationClass].Set(SystemInformation,
-                                                            SystemInformationLength);
+                /*
+                 * Hand the request to a subhandler.
+                 */
+                Status = CallQS [SystemInformationClass].Set(SystemInformation,
+                                                             SystemInformationLength);
             }
         }
     }
