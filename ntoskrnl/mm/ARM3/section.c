@@ -412,19 +412,19 @@ MiInsertInSystemSpace(IN PMMSESSION Session,
     return Base;
 }
 
-static
 NTSTATUS
+NTAPI
 MiAddMappedPtes(IN PMMPTE FirstPte,
                 IN PFN_NUMBER PteCount,
                 IN PCONTROL_AREA ControlArea,
-                IN LONGLONG SectionOffset)
+                IN PLARGE_INTEGER SectionOffset)
 {
     MMPTE TempPte;
     PMMPTE PointerPte, ProtoPte, LastProtoPte, LastPte;
     PSUBSECTION Subsection;
 
     /* Mapping at offset not supported yet */
-    ASSERT(SectionOffset == 0);
+    ASSERT(SectionOffset->QuadPart == 0);
 
     /* ARM3 doesn't support this yet */
     ASSERT(ControlArea->u.Flags.GlobalOnlyPerSession == 0);
@@ -1054,12 +1054,12 @@ _WARN("MiSessionCommitPageTables halfplemented for amd64")
 }
 
 NTSTATUS
-MiMapViewInSystemSpace(
-    _In_ PVOID Section,
-    _In_ PMMSESSION Session,
-    _Outptr_result_bytebuffer_ (*ViewSize) PVOID *MappedBase,
-    _Inout_ PSIZE_T ViewSize,
-    _Inout_ PLARGE_INTEGER SectionOffset)
+NTAPI
+MiMapViewInSystemSpace(IN PVOID Section,
+                       IN PMMSESSION Session,
+                       OUT PVOID *MappedBase,
+                       IN OUT PSIZE_T ViewSize,
+                       IN PLARGE_INTEGER SectionOffset)
 {
     PVOID Base;
     PCONTROL_AREA ControlArea;
@@ -1156,7 +1156,7 @@ MiMapViewInSystemSpace(
     Status = MiAddMappedPtes(MiAddressToPte(Base),
                              BYTES_TO_PAGES(*ViewSize),
                              ControlArea,
-                             SectionOffset->QuadPart);
+                             SectionOffset);
     ASSERT(NT_SUCCESS(Status));
 
     /* Return the base adress of the mapping and success */

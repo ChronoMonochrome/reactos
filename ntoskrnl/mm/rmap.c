@@ -128,7 +128,7 @@ GetEntry:
         LARGE_INTEGER Offset;
         BOOLEAN Released;
 
-        Offset.QuadPart = MemoryArea->SectionData.ViewOffset +
+        Offset.QuadPart = MemoryArea->SectionData.ViewOffset.QuadPart +
                  ((ULONG_PTR)Address - MA_GetStartingAddress(MemoryArea));
 
         Segment = MemoryArea->SectionData.Segment;
