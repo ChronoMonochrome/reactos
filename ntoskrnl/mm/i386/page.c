@@ -15,6 +15,9 @@
 
 #include <mm/ARM3/miarm.h>
 
+#define ADDR_TO_PDE_OFFSET MiAddressToPdeOffset
+#define ADDR_TO_PAGE_TABLE(v)  (((ULONG)(v)) / (1024 * PAGE_SIZE))
+
 /* GLOBALS *****************************************************************/
 
 #define PA_BIT_PRESENT   (0)
@@ -130,6 +133,47 @@ ULONG MmProtectToValue[32] =
 };
 
 /* FUNCTIONS ***************************************************************/
+
+static ULONG
+ProtectToPTE(ULONG flProtect)
+{
+    ULONG Attributes = 0;
+
+    if (flProtect & (PAGE_NOACCESS|PAGE_GUARD))
+    {
+        Attributes = 0;
+    }
+    else if (flProtect & PAGE_IS_WRITABLE)
+    {
+        Attributes = PA_PRESENT | PA_READWRITE;
+    }
+    else if (flProtect & (PAGE_IS_READABLE | PAGE_IS_EXECUTABLE))
+    {
+        Attributes = PA_PRESENT;
+    }
+    else
+    {
+        DPRINT1("Unknown main protection type.\n");
+        KeBugCheck(MEMORY_MANAGEMENT);
+    }
+
+    if (flProtect & PAGE_SYSTEM)
+    {
+    }
+    else
+    {
+        Attributes = Attributes | PA_USER;
+    }
+    if (flProtect & PAGE_NOCACHE)
+    {
+        Attributes = Attributes | PA_CD;
+    }
+    if (flProtect & PAGE_WRITETHROUGH)
+    {
+        Attributes = Attributes | PA_WT;
+    }
+    return(Attributes);
+}
 
 NTSTATUS
 NTAPI
@@ -547,21 +591,14 @@ MmCreateVirtualMappingUnsafe(PEPROCESS Process,
                              ULONG flProtect,
                              PFN_NUMBER Page)
 {
-    ULONG ProtectionMask;
+    ULONG Attributes;
     PMMPTE PointerPte;
-    MMPTE TempPte;
-    ULONG_PTR Pte;
+    ULONG Pte;
 
     DPRINT("MmCreateVirtualMappingUnsafe(%p, %p, %lu, %x)\n",
            Process, Address, flProtect, Page);
 
     ASSERT(((ULONG_PTR)Address % PAGE_SIZE) == 0);
-
-    ProtectionMask = MiMakeProtectionMask(flProtect);
-    /* Caller must have checked ! */
-    ASSERT(ProtectionMask != MM_INVALID_PROTECTION);
-    ASSERT(ProtectionMask != MM_NOACCESS);
-    ASSERT(ProtectionMask != MM_ZERO_ACCESS);
 
     /* Make sure our PDE is valid, and that everything is going fine */
     if (Process == NULL)
@@ -589,18 +626,22 @@ MmCreateVirtualMappingUnsafe(PEPROCESS Process,
         MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
     }
 
-    PointerPte = MiAddressToPte(Address);
-
+    Attributes = ProtectToPTE(flProtect);
+    Attributes &= 0xfff;
     if (Address >= MmSystemRangeStart)
     {
-        MI_MAKE_HARDWARE_PTE_KERNEL(&TempPte, PointerPte, ProtectionMask, Page);
+        Attributes &= ~PA_USER;
     }
     else
     {
-        MI_MAKE_HARDWARE_PTE_USER(&TempPte, PointerPte, ProtectionMask, Page);
+        Attributes |= PA_USER;
     }
 
-    Pte = InterlockedExchangePte(PointerPte, TempPte.u.Long);
+    /* This must be for a valid address */
+    ASSERT(FlagOn(Attributes, PA_PRESENT));
+
+    PointerPte = MiAddressToPte(Address);
+    Pte = InterlockedExchangePte(PointerPte, PFN_TO_PTE(Page) | Attributes);
     /* There should not have been anything valid here */
     if (Pte != 0)
     {
@@ -711,10 +752,9 @@ VOID
 NTAPI
 MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
 {
-    ULONG ProtectionMask;
+    ULONG Attributes = 0;
     PMMPTE PointerPte;
-    MMPTE TempPte;
-    ULONG_PTR Pte;
+    ULONG Pte;
 
     DPRINT("MmSetPageProtect(Process %p  Address %p  flProtect %x)\n",
            Process, Address, flProtect);
@@ -724,22 +764,17 @@ MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
 
     ASSERT(Process == PsGetCurrentProcess());
 
-    ProtectionMask = MiMakeProtectionMask(flProtect);
-    /* Caller must have checked ! */
-    ASSERT(ProtectionMask != MM_INVALID_PROTECTION);
-
     MiLockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
 
     MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
 
+    Attributes = ProtectToPTE(flProtect);
+
+    Attributes &= 0xfff;
+    Attributes |= PA_USER;
+
     PointerPte = MiAddressToPte(Address);
-
-    MI_MAKE_HARDWARE_PTE_USER(&TempPte, PointerPte, ProtectionMask, PFN_FROM_PTE(PointerPte));
-    /* Keep dirty & accessed bits */
-    TempPte.u.Hard.Accessed = PointerPte->u.Hard.Accessed;
-    TempPte.u.Hard.Dirty = PointerPte->u.Hard.Dirty;
-
-    Pte = InterlockedExchangePte(PointerPte, TempPte.u.Long);
+    Pte = InterlockedExchangePte(PointerPte, PAGE_MASK(PointerPte->u.Long) | Attributes | (PointerPte->u.Long & (PA_ACCESSED|PA_DIRTY)));
 
     // We should be able to bring a page back from PAGE_NOACCESS
     if ((Pte & 0x800) || !(Pte >> PAGE_SHIFT))
@@ -748,7 +783,7 @@ MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
         KeBugCheck(MEMORY_MANAGEMENT);
     }
 
-    if (Pte != TempPte.u.Long)
+    if ((Pte & 0xFFF) != Attributes)
         KeInvalidateTlbEntry(Address);
 
     MiUnlockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
