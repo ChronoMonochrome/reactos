@@ -2496,19 +2496,6 @@ ExeFmtpAllocateSegments(IN ULONG NrSegments)
     return Segments;
 }
 
-static NTSTATUS
-MmMapViewOfSegment(PMMSUPPORT AddressSpace,
-                   BOOLEAN AsImage,
-                   PMM_SECTION_SEGMENT Segment,
-                   PVOID* BaseAddress,
-                   SIZE_T ViewSize,
-                   ULONG Protect,
-                   LONGLONG ViewOffset,
-                   ULONG AllocationType);
-static NTSTATUS
-MmUnmapViewOfSegment(PMMSUPPORT AddressSpace,
-                     PVOID BaseAddress);
-
 static
 NTSTATUS
 NTAPI
@@ -2551,57 +2538,36 @@ ExeFmtpReadFile(IN PVOID File,
     BufferSize = Length + OffsetAdjustment;
     BufferSize = PAGE_ROUND_UP(BufferSize);
 
+    /* Flush data since we're about to perform a non-cached read */
+    CcFlushCache(FileObject->SectionObjectPointer,
+                 &FileOffset,
+                 BufferSize,
+                 &Iosb);
+
     /*
      * It's ok to use paged pool, because this is a temporary buffer only used in
      * the loading of executables. The assumption is that MmCreateSection is
      * always called at low IRQLs and that these buffers don't survive a brief
      * initialization phase
      */
-    Buffer = ExAllocatePoolWithTag(PagedPool, BufferSize, 'rXmM');
+    Buffer = ExAllocatePoolWithTag(PagedPool,
+                                   BufferSize,
+                                   'rXmM');
     if (!Buffer)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    if (FileObject->SectionObjectPointer->DataSectionObject)
+    UsedSize = 0;
+
+    Status = MiSimpleRead(FileObject, &FileOffset, Buffer, BufferSize, TRUE, &Iosb);
+
+    UsedSize = (ULONG)Iosb.Information;
+
+    if(NT_SUCCESS(Status) && UsedSize < OffsetAdjustment)
     {
-        PVOID SegmentMap = NULL;
-
-        /* Get the data from the file mapping instead */
-        MmLockAddressSpace(MmGetKernelAddressSpace());
-        Status = MmMapViewOfSegment(MmGetKernelAddressSpace(),
-                                    FALSE,
-                                    FileObject->SectionObjectPointer->DataSectionObject,
-                                    &SegmentMap,
-                                    BufferSize,
-                                    PAGE_READONLY,
-                                    FileOffset.QuadPart,
-                                    0);
-        MmUnlockAddressSpace(MmGetKernelAddressSpace());
-
-        if (!NT_SUCCESS(Status))
-            return Status;
-
-        RtlCopyMemory(Buffer, SegmentMap, BufferSize);
-        UsedSize = BufferSize;
-
-        MmLockAddressSpace(MmGetKernelAddressSpace());
-
-        MmUnmapViewOfSegment(MmGetKernelAddressSpace(), SegmentMap);
-
-        MmUnlockAddressSpace(MmGetKernelAddressSpace());
-    }
-    else
-    {
-        Status = MiSimpleRead(FileObject, &FileOffset, Buffer, BufferSize, TRUE, &Iosb);
-
-        UsedSize = (ULONG)Iosb.Information;
-
-        if(NT_SUCCESS(Status) && UsedSize < OffsetAdjustment)
-        {
-            Status = STATUS_IN_PAGE_ERROR;
-            ASSERT(!NT_SUCCESS(Status));
-        }
+        Status = STATUS_IN_PAGE_ERROR;
+        ASSERT(!NT_SUCCESS(Status));
     }
 
     if(NT_SUCCESS(Status))
@@ -3185,6 +3151,7 @@ grab_image_section_object:
     if (ImageSectionObject == NULL)
     {
         NTSTATUS StatusExeFmt;
+        PMM_SECTION_SEGMENT DataSectionObject;
 
         /* Release the lock because ExAllocatePoolWithTag could need to acquire it */
         MiReleasePfnLock(OldIrql);
@@ -3210,12 +3177,44 @@ grab_image_section_object:
 
         FileObject->SectionObjectPointer->ImageSectionObject = ImageSectionObject;
 
+        /* Get a ref on the data section object */
+        DataSectionObject = FileObject->SectionObjectPointer->DataSectionObject;
+        while (DataSectionObject && (DataSectionObject->SegFlags & (MM_SEGMENT_INDELETE | MM_SEGMENT_INCREATE)))
+        {
+            LARGE_INTEGER ShortTime;
+
+            MiReleasePfnLock(OldIrql);
+
+            ShortTime.QuadPart = - 10 * 100 * 1000;
+            KeDelayExecutionThread(KernelMode, FALSE, &ShortTime);
+
+            OldIrql = MiAcquirePfnLock();
+            DataSectionObject = FileObject->SectionObjectPointer->DataSectionObject;
+            ASSERT(DataSectionObject->SegFlags & MM_DATAFILE_SEGMENT);
+        }
+
+        /* Get a ref on it. */
+        if (DataSectionObject)
+            InterlockedIncrementUL(&DataSectionObject->RefCount);
+
         MiReleasePfnLock(OldIrql);
 
-        /* Purge the cache */
-        if (CcIsFileCached(FileObject))
+        if (DataSectionObject)
         {
-            CcFlushCache(FileObject->SectionObjectPointer, NULL, 0, NULL);
+            if ((DataSectionObject->SectionCount - (FileObject->SectionObjectPointer->SharedCacheMap != NULL)) > 0)
+            {
+                /* Someone's got a section opened. Deny creation */
+                DPRINT1("Denying image creation for %wZ: Sections opened: %lu.\n",
+                        &FileObject->FileName, DataSectionObject->SectionCount);
+                InterlockedExchangePointer(&FileObject->SectionObjectPointer->ImageSectionObject, NULL);
+                ExFreePoolWithTag(ImageSectionObject, TAG_MM_SECTION_SEGMENT);
+                MmDereferenceSegment(DataSectionObject);
+                ObDereferenceObject(Section);
+                return STATUS_ACCESS_DENIED;
+            }
+
+            /* Purge the cache. */
+            CcPurgeCacheSection(FileObject->SectionObjectPointer, NULL, 0, FALSE);
         }
 
         StatusExeFmt = ExeFmtpCreateImageSection(FileObject, ImageSectionObject);
@@ -3296,15 +3295,14 @@ grab_image_section_object:
 
 
 static NTSTATUS
-MmMapViewOfSegment(
-    PMMSUPPORT AddressSpace,
-    BOOLEAN AsImage,
-    PMM_SECTION_SEGMENT Segment,
-    PVOID* BaseAddress,
-    SIZE_T ViewSize,
-    ULONG Protect,
-    LONGLONG ViewOffset,
-    ULONG AllocationType)
+MmMapViewOfSegment(PMMSUPPORT AddressSpace,
+                   PSECTION Section,
+                   PMM_SECTION_SEGMENT Segment,
+                   PVOID* BaseAddress,
+                   SIZE_T ViewSize,
+                   ULONG Protect,
+                   LONGLONG ViewOffset,
+                   ULONG AllocationType)
 {
     PMEMORY_AREA MArea;
     NTSTATUS Status;
@@ -3360,7 +3358,7 @@ MmMapViewOfSegment(
 
     MArea->SectionData.Segment = Segment;
     MArea->SectionData.ViewOffset.QuadPart = ViewOffset;
-    if (AsImage)
+    if (Section->u.Flags.Image)
     {
         MArea->VadNode.u.VadFlags.VadType = VadImageMap;
     }
@@ -3995,7 +3993,7 @@ MmMapViewOfSection(IN PVOID SectionObject,
                                  ((char*)ImageBase + (ULONG_PTR)SectionSegments[i].Image.VirtualAddress);
             MmLockSectionSegment(&SectionSegments[i]);
             Status = MmMapViewOfSegment(AddressSpace,
-                                        TRUE,
+                                        Section,
                                         &SectionSegments[i],
                                         &SBaseAddress,
                                         SectionSegments[i].Length.QuadPart,
@@ -4080,7 +4078,7 @@ MmMapViewOfSection(IN PVOID SectionObject,
 
         MmLockSectionSegment(Segment);
         Status = MmMapViewOfSegment(AddressSpace,
-                                    FALSE,
+                                    Section,
                                     Segment,
                                     BaseAddress,
                                     *ViewSize,
@@ -4254,7 +4252,7 @@ MmMapViewInSystemSpaceEx (
     MmLockSectionSegment(Segment);
 
     Status = MmMapViewOfSegment(AddressSpace,
-                                Section->u.Flags.Image,
+                                Section,
                                 Segment,
                                 MappedBase,
                                 *ViewSize,
