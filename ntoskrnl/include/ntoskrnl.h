@@ -67,9 +67,7 @@
 
 #include <ntstrsafe.h>
 #include <ntpoapi.h>
-#define ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #include <ntintsafe.h>
-#undef ENABLE_INTSAFE_SIGNED_FUNCTIONS
 
 /* C Headers */
 #include <stdlib.h>
