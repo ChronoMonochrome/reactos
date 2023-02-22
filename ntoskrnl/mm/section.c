@@ -4093,36 +4093,54 @@ BOOLEAN NTAPI
 MmCanFileBeTruncated (IN PSECTION_OBJECT_POINTERS SectionObjectPointer,
                       IN PLARGE_INTEGER   NewFileSize)
 {
+    KIRQL OldIrql = MiAcquirePfnLock();
     BOOLEAN Ret;
     PMM_SECTION_SEGMENT Segment;
 
+CheckSectionPointer:
     /* Check whether an ImageSectionObject exists */
     if (SectionObjectPointer->ImageSectionObject != NULL)
     {
         DPRINT1("ERROR: File can't be truncated because it has an image section\n");
+        MiReleasePfnLock(OldIrql);
+
         return FALSE;
     }
 
-    Segment = MiGrabDataSection(SectionObjectPointer);
-    if (!Segment)
+    Segment = (PMM_SECTION_SEGMENT)SectionObjectPointer->DataSectionObject;
+    /* Wait for it to be created/deleted properly */
+    while (Segment && (Segment->SegFlags & (MM_SEGMENT_INCREATE | MM_SEGMENT_INDELETE)))
     {
-        /* There is no data section. It's fine to do anything. */
-        return TRUE;
+        LARGE_INTEGER ShortTime;
+
+        ShortTime.QuadPart = -10 * 100 * 1000;
+
+        /* Bad luck. Wait a bit for the operation to finish */
+        MiReleasePfnLock(OldIrql);
+        KeDelayExecutionThread(KernelMode, FALSE, &ShortTime);
+        OldIrql = MiAcquirePfnLock();
+        goto CheckSectionPointer;
     }
 
-    MmLockSectionSegment(Segment);
-    if ((Segment->SectionCount == 1) && (SectionObjectPointer->SharedCacheMap != NULL))
+    if (Segment)
     {
-        /* If the cache is the only one holding a reference to the segment, then it's fine to resize */
-        Ret = TRUE;
+        if ((Segment->SectionCount == 1) && (SectionObjectPointer->SharedCacheMap != NULL))
+        {
+            /* If the cache is the only one holding a reference to the segment, then it's fine to resize */
+            Ret = TRUE;
+        }
+        else
+        {
+            /* We can't shrink, but we can extend */
+            Ret = NewFileSize->QuadPart >= Segment->RawLength.QuadPart;
+        }
     }
     else
     {
-        /* We can't shrink, but we can extend */
-        Ret = NewFileSize->QuadPart >= Segment->RawLength.QuadPart;
+        Ret = TRUE;
     }
-    MmUnlockSectionSegment(Segment);
-    MmDereferenceSegment(Segment);
+
+    MiReleasePfnLock(OldIrql);
 
     DPRINT("FIXME: didn't check for outstanding write probes\n");
 
