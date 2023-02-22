@@ -2473,6 +2473,20 @@ ExeFmtpAllocateSegments(IN ULONG NrSegments)
 
     return Segments;
 }
+
+static NTSTATUS
+MmMapViewOfSegment(PMMSUPPORT AddressSpace,
+                   BOOLEAN AsImage,
+                   PMM_SECTION_SEGMENT Segment,
+                   PVOID* BaseAddress,
+                   SIZE_T ViewSize,
+                   ULONG Protect,
+                   LONGLONG ViewOffset,
+                   ULONG AllocationType);
+static NTSTATUS
+MmUnmapViewOfSegment(PMMSUPPORT AddressSpace,
+                     PVOID BaseAddress);
+
 static
 NTSTATUS
 NTAPI
@@ -2527,14 +2541,45 @@ ExeFmtpReadFile(IN PVOID File,
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    Status = MiSimpleRead(FileObject, &FileOffset, Buffer, BufferSize, TRUE, &Iosb);
-
-    UsedSize = (ULONG)Iosb.Information;
-
-    if(NT_SUCCESS(Status) && UsedSize < OffsetAdjustment)
+    if (FileObject->SectionObjectPointer->DataSectionObject)
     {
-        Status = STATUS_IN_PAGE_ERROR;
-        ASSERT(!NT_SUCCESS(Status));
+        PVOID SegmentMap = NULL;
+
+        /* Get the data from the file mapping instead */
+        MmLockAddressSpace(MmGetKernelAddressSpace());
+        Status = MmMapViewOfSegment(MmGetKernelAddressSpace(),
+                                    FALSE,
+                                    FileObject->SectionObjectPointer->DataSectionObject,
+                                    &SegmentMap,
+                                    BufferSize,
+                                    PAGE_READONLY,
+                                    FileOffset.QuadPart,
+                                    0);
+        MmUnlockAddressSpace(MmGetKernelAddressSpace());
+
+        if (!NT_SUCCESS(Status))
+            return Status;
+
+        RtlCopyMemory(Buffer, SegmentMap, BufferSize);
+        UsedSize = BufferSize;
+
+        MmLockAddressSpace(MmGetKernelAddressSpace());
+
+        MmUnmapViewOfSegment(MmGetKernelAddressSpace(), SegmentMap);
+
+        MmUnlockAddressSpace(MmGetKernelAddressSpace());
+    }
+    else
+    {
+        Status = MiSimpleRead(FileObject, &FileOffset, Buffer, BufferSize, TRUE, &Iosb);
+
+        UsedSize = (ULONG)Iosb.Information;
+
+        if(NT_SUCCESS(Status) && UsedSize < OffsetAdjustment)
+        {
+            Status = STATUS_IN_PAGE_ERROR;
+            ASSERT(!NT_SUCCESS(Status));
+        }
     }
 
     if(NT_SUCCESS(Status))
@@ -3146,7 +3191,10 @@ grab_image_section_object:
         MiReleasePfnLock(OldIrql);
 
         /* Purge the cache */
-        CcFlushCache(FileObject->SectionObjectPointer, NULL, 0, NULL);
+        if (CcIsFileCached(FileObject))
+        {
+            CcFlushCache(FileObject->SectionObjectPointer, NULL, 0, NULL);
+        }
 
         StatusExeFmt = ExeFmtpCreateImageSection(FileObject, ImageSectionObject);
 
