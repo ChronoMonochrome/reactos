@@ -83,7 +83,7 @@ STDMETHODIMP CMiniportWaveCMI::NonDelegatingQueryInterface(REFIID Interface, PVO
 {
 	PAGED_CODE();
 	ASSERT(Object);
-	DBGPRINT(("CMiniportWaveCMI[%p]::NonDelegatingQueryInterface", this));
+	DBGPRINT(("CMiniportWaveCMI[%p]::NonDelegatingQueryInterface"));
 
 	if (IsEqualGUIDAligned(Interface,IID_IUnknown)) {
 #ifdef WAVERT

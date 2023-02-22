@@ -112,7 +112,7 @@ ServiceControlHandler(DWORD dwControl,
             return ERROR_SUCCESS;
 
         default :
-            DPRINT1("  Control %lu received\n", dwControl);
+            DPRINT1("  Control %lu received\n");
             return ERROR_CALL_NOT_IMPLEMENTED;
     }
 }

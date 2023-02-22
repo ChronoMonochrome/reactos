@@ -2190,7 +2190,7 @@ NtOpenThreadTokenEx(
                                        KernelMode, &NewToken);
             if (!NT_SUCCESS(Status))
             {
-                DPRINT1("NtOpenThreadTokenEx(): Failed to duplicate the token (Status 0x%lx)\n", Status);
+                DPRINT1("NtOpenThreadTokenEx(): Failed to duplicate the token (Status 0x%lx)\n");
             }
 
             ObReferenceObject(NewToken);
@@ -2231,7 +2231,7 @@ NtOpenThreadTokenEx(
         Status = PsImpersonateClient(Thread, NewToken, FALSE, EffectiveOnly, ImpersonationLevel);
         if (!NT_SUCCESS(Status))
         {
-            DPRINT1("NtOpenThreadTokenEx(): Failed to impersonate the client (Status 0x%lx)\n", Status);
+            DPRINT1("NtOpenThreadTokenEx(): Failed to impersonate the client (Status 0x%lx)\n");
         }
     }
 

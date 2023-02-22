@@ -417,7 +417,7 @@ UserPaintCaption(PWND pWnd, INT Flags)
          * RealUserDrawCaption in order to draw the classic caption when themes
          * are disabled but the themes service is enabled
          */
-         TRACE("UDCB Flags %08x\n", Flags);
+         TRACE("UDCB Flags %08x\n");
          co_IntSendMessage(UserHMGetHandle(pWnd), WM_NCUAHDRAWCAPTION, Flags, 0);
       }
       else
