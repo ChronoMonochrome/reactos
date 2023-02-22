@@ -790,23 +790,12 @@ MI_MAKE_HARDWARE_PTE_KERNEL(IN PMMPTE NewPte,
     ASSERT(!MI_IS_SESSION_PTE(MappingPte));
     ASSERT((MappingPte < (PMMPTE)PDE_BASE) || (MappingPte > (PMMPTE)PDE_TOP));
 
-    /* Check that we are not setting valid a page that should not be */
-    ASSERT(ProtectionMask & MM_PROTECT_ACCESS);
-    ASSERT((ProtectionMask & MM_GUARDPAGE) == 0);
-
     /* Start fresh */
-    NewPte->u.Long = 0;
+    *NewPte = ValidKernelPte;
 
     /* Set the protection and page */
     NewPte->u.Hard.PageFrameNumber = PageFrameNumber;
     NewPte->u.Long |= MmProtectToPteMask[ProtectionMask];
-
-    /* Make this valid & global */
-#ifdef _GLOBAL_PAGES_ARE_AWESOME_
-    if (KeFeatureBits & KF_GLOBAL_PAGE)
-        NewPte->u.Hard.Global = 1;
-#endif
-    NewPte->u.Hard.Valid = 1;
 }
 
 //
@@ -819,10 +808,6 @@ MI_MAKE_HARDWARE_PTE(IN PMMPTE NewPte,
                      IN ULONG_PTR ProtectionMask,
                      IN PFN_NUMBER PageFrameNumber)
 {
-    /* Check that we are not setting valid a page that should not be */
-    ASSERT(ProtectionMask & MM_PROTECT_ACCESS);
-    ASSERT((ProtectionMask & MM_GUARDPAGE) == 0);
-
     /* Set the protection and page */
     NewPte->u.Long = MiDetermineUserGlobalPteMask(MappingPte);
     NewPte->u.Long |= MmProtectToPteMask[ProtectionMask];
@@ -845,10 +830,7 @@ MI_MAKE_HARDWARE_PTE_USER(IN PMMPTE NewPte,
     /* Start fresh */
     NewPte->u.Long = 0;
 
-    /* Check that we are not setting valid a page that should not be */
-    ASSERT(ProtectionMask & MM_PROTECT_ACCESS);
-    ASSERT((ProtectionMask & MM_GUARDPAGE) == 0);
-
+    /* Set the protection and page */
     NewPte->u.Hard.Valid = TRUE;
     NewPte->u.Hard.Owner = TRUE;
     NewPte->u.Hard.PageFrameNumber = PageFrameNumber;
