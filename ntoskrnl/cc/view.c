@@ -1295,7 +1295,7 @@ CcRosInitializeFileCache (
             NULL,
             &SharedCacheMap->SectionSize,
             PAGE_READWRITE,
-            SEC_RESERVE,
+            0,
             NULL,
             FileObject);
 

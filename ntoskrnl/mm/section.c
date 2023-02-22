@@ -1242,8 +1242,7 @@ MiReadPage(PMEMORY_AREA MemoryArea,
         Status = STATUS_SUCCESS;
     }
 
-    if (!MemoryArea->SectionData.Section->u.Flags.Reserve
-        && ((SegOffset + PAGE_SIZE) > MemoryArea->SectionData.Segment->RawLength.QuadPart))
+    if ((MemoryArea->VadNode.u.VadFlags.VadType == VadImageMap) && ((SegOffset + PAGE_SIZE) > MemoryArea->SectionData.Segment->RawLength.QuadPart))
     {
         KIRQL OldIrql;
         PUCHAR PageMap;
@@ -2244,8 +2243,6 @@ MmCreateDataFileSection(PSECTION *SectionObject,
 
     if (AllocationAttributes & SEC_NO_CHANGE)
         Section->u.Flags.NoChange = 1;
-    if (AllocationAttributes & SEC_RESERVE)
-        Section->u.Flags.Reserve = 1;
 
     if (!GotFileHandle)
     {
@@ -5075,16 +5072,13 @@ MmExtendSection(
         PMM_SECTION_SEGMENT Segment = (PMM_SECTION_SEGMENT)Section->Segment;
         Section->SizeOfSection = *NewSize;
 
-        if (!Section->u.Flags.Reserve)
+        MmLockSectionSegment(Segment);
+        if (Segment->RawLength.QuadPart < NewSize->QuadPart)
         {
-            MmLockSectionSegment(Segment);
-            if (Segment->RawLength.QuadPart < NewSize->QuadPart)
-            {
-                Segment->RawLength = *NewSize;
-                Segment->Length.QuadPart = (NewSize->QuadPart + PAGE_SIZE - 1) & ~((LONGLONG)PAGE_SIZE);
-            }
-            MmUnlockSectionSegment(Segment);
+            Segment->RawLength = *NewSize;
+            Segment->Length.QuadPart = (NewSize->QuadPart + PAGE_SIZE - 1) & ~((LONGLONG)PAGE_SIZE);
         }
+        MmUnlockSectionSegment(Segment);
     }
 
     return STATUS_SUCCESS;
