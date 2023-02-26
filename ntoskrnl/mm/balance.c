@@ -207,24 +207,16 @@ MmTrimUserMemory(ULONG Target, ULONG Priority, PULONG NrFreedPages)
                 Process = Entry->Process;
                 Address = Entry->Address;
 
-                ObReferenceObject(Process);
-
-                if (!ExAcquireRundownProtection(&Process->RundownProtect))
-                {
-                    ObDereferenceObject(Process);
-                    MiReleasePfnLock(OldIrql);
-                    continue;
-                }
-
                 MiReleasePfnLock(OldIrql);
 
                 KeStackAttachProcess(&Process->Pcb, &ApcState);
-                MiLockProcessWorkingSet(Process, PsGetCurrentThread());
+
+                MmLockAddressSpace(&Process->Vm);
 
                 /* Be sure this is still valid. */
-                if (MmIsAddressValid(Address))
+                PMMPTE Pte = MiAddressToPte(Address);
+                if (Pte->u.Hard.Valid)
                 {
-                    PMMPTE Pte = MiAddressToPte(Address);
                     Accessed = Accessed || Pte->u.Hard.Accessed;
                     Pte->u.Hard.Accessed = 0;
 
@@ -232,11 +224,9 @@ MmTrimUserMemory(ULONG Target, ULONG Priority, PULONG NrFreedPages)
                     //KeInvalidateTlbEntry(Address);
                 }
 
-                MiUnlockProcessWorkingSet(Process, PsGetCurrentThread());
+                MmUnlockAddressSpace(&Process->Vm);
 
                 KeUnstackDetachProcess(&ApcState);
-                ExReleaseRundownProtection(&Process->RundownProtect);
-                ObDereferenceObject(Process);
             }
 
             if (!Accessed)
