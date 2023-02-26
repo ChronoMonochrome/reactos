@@ -904,7 +904,7 @@ MmSessionDelete(IN ULONG SessionId)
 
     /* Remove one reference count */
     KeEnterCriticalRegion();
-    MiDereferenceSession();
+    /* FIXME: Do it */
     KeLeaveCriticalRegion();
 
     /* All done */
