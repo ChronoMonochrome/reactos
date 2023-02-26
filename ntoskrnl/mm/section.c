@@ -1188,7 +1188,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
     PMDL Mdl = (PMDL)MdlBase;
     PFILE_OBJECT FileObject = MemoryArea->SectionData.Segment->FileObject;
     LARGE_INTEGER FileOffset;
-    KIRQL OldIrql;
 
     FileOffset.QuadPart = MemoryArea->SectionData.Segment->Image.FileOffset + SegOffset;
 
@@ -1205,9 +1204,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
 
     KeInitializeEvent(&Event, NotificationEvent, FALSE);
 
-    /* Disable APCs */
-    KeRaiseIrql(APC_LEVEL, &OldIrql);
-
     Status = IoPageRead(FileObject, Mdl, &FileOffset, &Event, &IoStatus);
     if (Status == STATUS_PENDING)
     {
@@ -1219,8 +1215,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
     {
         MmUnmapLockedPages (Mdl->MappedSystemVa, Mdl);
     }
-
-    KeLowerIrql(OldIrql);
 
     if (Status == STATUS_END_OF_FILE)
     {
