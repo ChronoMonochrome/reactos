@@ -4359,6 +4359,7 @@ MmCreateSection (OUT PVOID  * Section,
     else
     {
         /* All cases should be handled above */
+        ASSERT(FALSE);
         Status = STATUS_INVALID_PARAMETER;
         if (FileObject)
             ObDereferenceObject(FileObject);
