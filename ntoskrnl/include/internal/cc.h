@@ -331,6 +331,14 @@ VOID
 NTAPI
 CcShutdownLazyWriter(VOID);
 
+NTSTATUS
+NTAPI
+CcReadVirtualAddress(PROS_VACB Vacb);
+
+NTSTATUS
+NTAPI
+CcWriteVirtualAddress(PROS_VACB Vacb);
+
 BOOLEAN
 NTAPI
 CcInitializeCacheManager(VOID);

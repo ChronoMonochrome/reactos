@@ -1871,7 +1871,7 @@ MmGetFileNameForAddress(IN PVOID Address,
 {
     POBJECT_NAME_INFORMATION ModuleNameInformation;
     PVOID AddressSpace;
-    NTSTATUS Status;
+    NTSTATUS Status, Status1;
     PMMVAD Vad;
     PFILE_OBJECT FileObject = NULL;
 
@@ -1914,7 +1914,10 @@ MmGetFileNameForAddress(IN PVOID Address,
     if (NT_SUCCESS(Status))
     {
         /* Init modulename */
-        RtlCreateUnicodeString(ModuleName, ModuleNameInformation->Name.Buffer);
+        Status1 = RtlCreateUnicodeString(ModuleName, ModuleNameInformation->Name.Buffer);
+        if (!NT_SUCCESS(Status1)) {
+            DPRINT("RtlCreateUnicodeString failure\n");
+        }
 
         /* Free temp taged buffer from MmGetFileNameForFileObject() */
         ExFreePoolWithTag(ModuleNameInformation, TAG_MM);
