@@ -410,11 +410,17 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
 
     if (!RMAP_IS_SEGMENT(Address))
     {
-        ASSERT(Process != NULL);
-        PrevSize = InterlockedExchangeAddUL(&Process->Vm.WorkingSetSize, PAGE_SIZE);
-        if (PrevSize >= Process->Vm.PeakWorkingSetSize)
+        if (Process == NULL)
         {
-            Process->Vm.PeakWorkingSetSize = PrevSize + PAGE_SIZE;
+            Process = PsInitialSystemProcess;
+        }
+        if (Process)
+        {
+            PrevSize = InterlockedExchangeAddUL(&Process->Vm.WorkingSetSize, PAGE_SIZE);
+            if (PrevSize >= Process->Vm.PeakWorkingSetSize)
+            {
+                Process->Vm.PeakWorkingSetSize = PrevSize + PAGE_SIZE;
+            }
         }
     }
 }
@@ -449,8 +455,14 @@ MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
             ExFreeToNPagedLookasideList(&RmapLookasideList, current_entry);
             if (!RMAP_IS_SEGMENT(Address))
             {
-                ASSERT(Process != NULL);
-                (void)InterlockedExchangeAddUL(&Process->Vm.WorkingSetSize, -PAGE_SIZE);
+                if (Process == NULL)
+                {
+                    Process = PsInitialSystemProcess;
+                }
+                if (Process)
+                {
+                    (void)InterlockedExchangeAddUL(&Process->Vm.WorkingSetSize, -PAGE_SIZE);
+                }
             }
             return;
         }
