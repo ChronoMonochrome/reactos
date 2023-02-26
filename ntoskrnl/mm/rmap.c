@@ -250,11 +250,7 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
 
             /* We can finally let this page go */
             MmDeleteRmap(Page, Process, Address);
-#if DBG
-            OldIrql = MiAcquirePfnLock();
             ASSERT(MmGetRmapListHeadPage(Page) == NULL);
-            MiReleasePfnLock(OldIrql);
-#endif
             MmReleasePageMemoryConsumer(MC_USER, Page);
 
             if (Address < MmSystemRangeStart)

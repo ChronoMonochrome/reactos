@@ -426,10 +426,12 @@ PMM_RMAP_ENTRY
 NTAPI
 MmGetRmapListHeadPage(PFN_NUMBER Pfn)
 {
+    KIRQL oldIrql;
+    PMM_RMAP_ENTRY ListHead;
     PMMPFN Pfn1;
 
-    /* PFN database must be locked */
-    MI_ASSERT_PFN_LOCK_HELD();
+    /* Lock PFN database */
+    oldIrql = MiAcquirePfnLock();
 
     /* Get the entry */
     Pfn1 = MiGetPfnEntry(Pfn);
@@ -437,14 +439,19 @@ MmGetRmapListHeadPage(PFN_NUMBER Pfn)
 
     if (!MI_IS_ROS_PFN(Pfn1))
     {
+        MiReleasePfnLock(oldIrql);
         return NULL;
     }
+
+    /* Get the list head */
+    ListHead = Pfn1->RmapListHead;
 
     /* Should not have an RMAP for a non-active page */
     ASSERT(MiIsPfnInUse(Pfn1) == TRUE);
 
-    /* Get the list head */
-    return Pfn1->RmapListHead;
+    /* Release PFN database and return rmap list head */
+    MiReleasePfnLock(oldIrql);
+    return ListHead;
 }
 
 VOID
