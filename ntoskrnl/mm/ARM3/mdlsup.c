@@ -74,18 +74,10 @@ MiMapLockedPagesInUserSpace(
         DPRINT1("FIXME: Need to check for large pages\n");
     }
 
-    Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-    if (!NT_SUCCESS(Status))
-    {
-        Vad = NULL;
-        goto Error;
-    }
-
     /* Allocate a VAD for our mapped region */
     Vad = ExAllocatePoolWithTag(NonPagedPool, sizeof(MMVAD_LONG), 'ldaV');
     if (Vad == NULL)
     {
-        PsReturnProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
         Status = STATUS_INSUFFICIENT_RESOURCES;
         goto Error;
     }
@@ -163,7 +155,12 @@ MiMapLockedPagesInUserSpace(
     MiLockProcessWorkingSetUnsafe(Process, Thread);
 
     ASSERT(Vad->EndingVpn >= Vad->StartingVpn);
+
     MiInsertVad((PMMVAD)Vad, &Process->VadRoot);
+
+    Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
+    if (!NT_SUCCESS(Status))
+        goto Error;
 
     /* Check if this is uncached */
     if (CacheAttribute != MiCached)
@@ -282,7 +279,6 @@ Error:
     if (Vad != NULL)
     {
         ExFreePoolWithTag(Vad, 'ldaV');
-        PsReturnProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
     }
     ExRaiseStatus(Status);
 }
