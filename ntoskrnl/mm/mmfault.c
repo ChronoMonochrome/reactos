@@ -77,8 +77,7 @@ MmpAccessFault(KPROCESSOR_MODE Mode,
         case MEMORY_AREA_SECTION_VIEW:
             Status = MmAccessFaultSectionView(AddressSpace,
                                               MemoryArea,
-                                              (PVOID)Address,
-                                              !FromMdl);
+                                              (PVOID)Address);
             break;
 #ifdef NEWCC
         case MEMORY_AREA_CACHE:
@@ -170,7 +169,7 @@ MmNotPresentFault(KPROCESSOR_MODE Mode,
             Status = MmNotPresentFaultSectionView(AddressSpace,
                                                   MemoryArea,
                                                   (PVOID)Address,
-                                                  !FromMdl);
+                                                  FromMdl);
             break;
 #ifdef NEWCC
         case MEMORY_AREA_CACHE:

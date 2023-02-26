@@ -219,8 +219,6 @@ MmGetPageTableForProcess(PEPROCESS Process, PVOID Address, BOOLEAN Create, PKIRQ
             PMMPDE PdeBase;
             ULONG PdeOffset = MiGetPdeOffset(Address);
 
-            ASSERT(!Create);
-
             PdeBase = MiMapPageInHyperSpace(PsGetCurrentProcess(),
                                             PTE_TO_PFN(Process->Pcb.DirectoryTableBase[0]),
                                             OldIrql);
@@ -231,8 +229,29 @@ MmGetPageTableForProcess(PEPROCESS Process, PVOID Address, BOOLEAN Create, PKIRQ
             PointerPde = PdeBase + PdeOffset;
             if (PointerPde->u.Hard.Valid == 0)
             {
-                MiUnmapPageInHyperSpace(PsGetCurrentProcess(), PdeBase, *OldIrql);
-                return NULL;
+                KAPC_STATE ApcState;
+                NTSTATUS Status;
+
+                if (!Create)
+                {
+                    MiUnmapPageInHyperSpace(PsGetCurrentProcess(), PdeBase, *OldIrql);
+                    return NULL;
+                }
+
+                KeStackAttachProcess(&Process->Pcb, &ApcState);
+
+                Status = MiDispatchFault(0x1,
+                                     MiAddressToPte(Address),
+                                     MiAddressToPde(Address),
+                                     NULL,
+                                     FALSE,
+                                     Process,
+                                     NULL,
+                                     NULL);
+
+                KeUnstackDetachProcess(&ApcState);
+                if (!NT_SUCCESS(Status))
+                    return NULL;
             }
 
             Pfn = PointerPde->u.Hard.PageFrameNumber;
