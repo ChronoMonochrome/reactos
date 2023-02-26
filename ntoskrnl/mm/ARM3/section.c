@@ -915,7 +915,6 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
     /* Remove the VAD */
     ASSERT(Process->VadRoot.NumberGenericTableElements >= 1);
     MiRemoveNode((PMMADDRESS_NODE)Vad, &Process->VadRoot);
-    PsReturnProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
 
     /* Remove the PTEs for this view, which also releases the working set lock */
     MiRemoveMappedView(Process, Vad);
@@ -1490,13 +1489,6 @@ MiMapViewOfDataSection(IN PCONTROL_AREA ControlArea,
         StartAddress = 0;
     }
 
-    Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-    if (!NT_SUCCESS(Status))
-    {
-        ExFreePoolWithTag(Vad, 'ldaV');
-        return Status;
-    }
-
     /* Insert the VAD */
     Status = MiInsertVadEx((PMMVAD)Vad,
                            &StartAddress,
@@ -1506,7 +1498,6 @@ MiMapViewOfDataSection(IN PCONTROL_AREA ControlArea,
                            AllocationType);
     if (!NT_SUCCESS(Status))
     {
-        PsReturnProcessNonPagedPoolQuota(PsGetCurrentProcess(), sizeof(MMVAD_LONG));
         return Status;
     }
 
