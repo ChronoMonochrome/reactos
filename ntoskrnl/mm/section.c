@@ -2069,7 +2069,7 @@ MmCreatePhysicalMemorySection(VOID)
     /*
      * Create the section mapping physical memory
      */
-    SectionSize.QuadPart = MmHighestPhysicalPage * PAGE_SIZE;
+    SectionSize.QuadPart = MmNumberOfPhysicalPages * PAGE_SIZE;
     InitializeObjectAttributes(&Obj,
                                &Name,
                                OBJ_PERMANENT | OBJ_KERNEL_EXCLUSIVE,
@@ -2137,7 +2137,6 @@ MmCreatePhysicalMemorySection(VOID)
     if (!NT_SUCCESS(Status))
     {
         ObDereferenceObject(PhysSection);
-        return Status;
     }
     ObCloseHandle(Handle, KernelMode);
 
@@ -3656,17 +3655,16 @@ NtQuerySection(
             Sbi.BaseAddress = (PVOID)Section->Address.StartingVpn;
 
             Sbi.Attributes = 0;
+            if (Section->u.Flags.Commit)
+                Sbi.Attributes |= SEC_COMMIT;
+            if (Section->u.Flags.Reserve)
+                Sbi.Attributes |= SEC_RESERVE;
             if (Section->u.Flags.File)
                 Sbi.Attributes |= SEC_FILE;
             if (Section->u.Flags.Image)
                 Sbi.Attributes |= SEC_IMAGE;
 
-            /* Those are not set *************
-            if (Section->u.Flags.Commit)
-                Sbi.Attributes |= SEC_COMMIT;
-            if (Section->u.Flags.Reserve)
-                Sbi.Attributes |= SEC_RESERVE;
-            **********************************/
+            /* FIXME : Complete/test the list of flags passed back from NtCreateSection */
 
             if (Section->u.Flags.Image)
             {
@@ -4008,9 +4006,8 @@ MmMapViewOfSection(IN PVOID SectionObject,
         {
             (*ViewSize) = Section->SizeOfSection.QuadPart - ViewOffset;
         }
-        else if ((ExGetPreviousMode() == UserMode) && (((*ViewSize)+ViewOffset) > Section->SizeOfSection.QuadPart))
+        else if (((*ViewSize)+ViewOffset) > Section->SizeOfSection.QuadPart)
         {
-            /* Dubious */
             (*ViewSize) = MIN(Section->SizeOfSection.QuadPart - ViewOffset, SIZE_T_MAX - PAGE_SIZE);
         }
 
@@ -4333,16 +4330,8 @@ MmCreateSection (OUT PVOID  * Section,
             return STATUS_INVALID_PARAMETER_6;
         }
 
-        /* Did the caller pass a file object ? */
-        if (FileObject)
-        {
-            /* Reference the object directly */
-            ObReferenceObject(FileObject);
-
-            /* We don't create image mappings with file objects */
-            AllocationAttributes &= ~SEC_IMAGE;
-        }
-        else
+        /* Did the caller pass a handle? */
+        if (FileHandle)
         {
             /* Reference the file handle to get the object */
             Status = ObReferenceObjectByHandle(FileHandle,
@@ -4379,6 +4368,11 @@ MmCreateSection (OUT PVOID  * Section,
             if ((AllocationAttributes & SEC_IMAGE) && (Status == STATUS_FILE_LOCKED_WITH_WRITERS))
                 DPRINT1("Creating image map with writers open on the file!\n");
 #endif
+        }
+        else
+        {
+            /* Reference the object directly */
+            ObReferenceObject(FileObject);
         }
     }
     else
