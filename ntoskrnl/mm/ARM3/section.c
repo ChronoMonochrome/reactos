@@ -1927,13 +1927,11 @@ MmGetFileNameForAddress(IN PVOID Address,
     if (NT_SUCCESS(Status))
     {
         /* Init modulename */
-        if (!RtlCreateUnicodeString(ModuleName, ModuleNameInformation->Name.Buffer))
-            Status = STATUS_INSUFFICIENT_RESOURCES;
+        RtlCreateUnicodeString(ModuleName, ModuleNameInformation->Name.Buffer);
 
         /* Free temp taged buffer from MmGetFileNameForFileObject() */
         ExFreePoolWithTag(ModuleNameInformation, TAG_MM);
-
-        DPRINT("Found ModuleName %wZ by address %p\n", ModuleName, Address);
+        DPRINT("Found ModuleName %S by address %p\n", ModuleName->Buffer, Address);
     }
 
    /* Return status */
