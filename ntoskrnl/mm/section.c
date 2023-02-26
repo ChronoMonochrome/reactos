@@ -1210,11 +1210,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
         MmUnmapLockedPages (Mdl->MappedSystemVa, Mdl);
     }
 
-    if (Status == STATUS_END_OF_FILE)
-    {
-        Status = STATUS_SUCCESS;
-    }
-
     return Status;
 }
 
@@ -2217,7 +2212,7 @@ MmCreateDataFileSection(PSECTION *SectionObject,
     if (!GotFileHandle)
     {
         ASSERT(UMaximumSize != NULL);
-        // ASSERT(UMaximumSize->QuadPart != 0);
+        ASSERT(UMaximumSize->QuadPart != 0);
         MaximumSize = *UMaximumSize;
     }
     else
