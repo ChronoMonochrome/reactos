@@ -4663,7 +4663,7 @@ MmFlushSegment(
     _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
     _In_opt_ PLARGE_INTEGER Offset,
     _In_ ULONG Length,
-    _Out_opt_ PIO_STATUS_BLOCK Iosb)
+    _In_opt_ PIO_STATUS_BLOCK Iosb)
 {
     LARGE_INTEGER FlushStart, FlushEnd;
     NTSTATUS Status;
