@@ -1668,12 +1668,6 @@ MmCopyVirtualMemory(IN PEPROCESS SourceProcess,
                     IN KPROCESSOR_MODE PreviousMode,
                     OUT PSIZE_T ReturnSize);
 
-/* wslist.cpp ****************************************************************/
-_Requires_exclusive_lock_held_(WorkingSet->WorkingSetMutex)
-VOID
-NTAPI
-MiInitializeWorkingSetList(_Inout_ PMMSUPPORT WorkingSet);
-
 #ifdef __cplusplus
 } // extern "C"
 

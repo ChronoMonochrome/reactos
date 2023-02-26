@@ -2139,9 +2139,6 @@ MmArmInitSystem(IN ULONG Phase,
         /* Initialize the user mode image list */
         InitializeListHead(&MmLoadedUserImageList);
 
-        /* Initalize the Working set list */
-        InitializeListHead(&MmWorkingSetExpansionHead);
-
         /* Initialize critical section timeout value (relative time is negative) */
         MmCriticalSectionTimeout.QuadPart = MmCritsectTimeoutSeconds * (-10000000LL);
 
