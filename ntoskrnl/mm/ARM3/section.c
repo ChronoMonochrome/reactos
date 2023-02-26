@@ -3341,7 +3341,7 @@ ULONG
 NTAPI
 MmDoesFileHaveUserWritableReferences(IN PSECTION_OBJECT_POINTERS SectionPointer)
 {
-    UNIMPLEMENTED_ONCE;
+    UNIMPLEMENTED;
     return 0;
 }
 

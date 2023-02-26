@@ -1025,7 +1025,7 @@ SeAuditingFileEventsWithContext(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_opt_ PSECURITY_SUBJECT_CONTEXT SubjectSecurityContext)
 {
-    UNIMPLEMENTED_ONCE;
+    UNIMPLEMENTED;
     return FALSE;
 }
 
