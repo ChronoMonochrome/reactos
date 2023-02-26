@@ -447,26 +447,6 @@ CcCanIWrite (
     return TRUE;
 }
 
-static
-int
-CcpCheckInvalidUserBuffer(PEXCEPTION_POINTERS Except, PVOID Buffer, ULONG Length)
-{
-    ULONG_PTR ExceptionAddress;
-    ULONG_PTR BeginAddress = (ULONG_PTR)Buffer;
-    ULONG_PTR EndAddress = (ULONG_PTR)Buffer + Length;
-
-    if (Except->ExceptionRecord->ExceptionCode != STATUS_ACCESS_VIOLATION)
-        return EXCEPTION_CONTINUE_SEARCH;
-    if (Except->ExceptionRecord->NumberParameters < 2)
-        return EXCEPTION_CONTINUE_SEARCH;
-
-    ExceptionAddress = Except->ExceptionRecord->ExceptionInformation[1];
-    if ((ExceptionAddress >= BeginAddress) && (ExceptionAddress < EndAddress))
-        return EXCEPTION_EXECUTE_HANDLER;
-
-    return EXCEPTION_CONTINUE_SEARCH;
-}
-
 /*
  * @implemented
  */
@@ -485,7 +465,6 @@ CcCopyRead (
     NTSTATUS Status;
     LONGLONG CurrentOffset;
     LONGLONG ReadEnd = FileOffset->QuadPart + Length;
-    ULONG ReadLength = 0;
 
     CCTRACE(CC_API_DEBUG, "FileObject=%p FileOffset=%I64d Length=%lu Wait=%d\n",
         FileObject, FileOffset->QuadPart, Length, Wait);
@@ -500,6 +479,9 @@ CcCopyRead (
 
     /* Documented to ASSERT, but KMTests test this case... */
     // ASSERT((FileOffset->QuadPart + Length) <= SharedCacheMap->FileSize.QuadPart);
+
+    IoStatus->Status = STATUS_SUCCESS;
+    IoStatus->Information = 0;
 
     CurrentOffset = FileOffset->QuadPart;
     while(CurrentOffset < ReadEnd)
@@ -524,23 +506,13 @@ CcCopyRead (
             if (CurrentOffset + VacbLength > SharedCacheMap->SectionSize.QuadPart)
                 CopyLength = SharedCacheMap->SectionSize.QuadPart - CurrentOffset;
             if (CopyLength != 0)
-            {
-                _SEH2_TRY
-                {
-                    RtlCopyMemory(Buffer, (PUCHAR)Vacb->BaseAddress + VacbOffset, CopyLength);
-                }
-                _SEH2_EXCEPT(CcpCheckInvalidUserBuffer(_SEH2_GetExceptionInformation(), Buffer, VacbLength))
-                {
-                    ExRaiseStatus(STATUS_INVALID_USER_BUFFER);
-                }
-                _SEH2_END;
-            }
+                RtlCopyMemory(Buffer, (PUCHAR)Vacb->BaseAddress + VacbOffset, CopyLength);
 
             /* Zero-out the buffer tail if needed */
             if (CopyLength < VacbLength)
                 RtlZeroMemory((PUCHAR)Buffer + CopyLength, VacbLength - CopyLength);
 
-            ReadLength += VacbLength;
+            IoStatus->Information += VacbLength;
 
             Buffer = (PVOID)((ULONG_PTR)Buffer + VacbLength);
             CurrentOffset += VacbLength;
@@ -552,9 +524,6 @@ CcCopyRead (
         }
         _SEH2_END;
     }
-
-    IoStatus->Status = STATUS_SUCCESS;
-    IoStatus->Information = ReadLength;
 
     return TRUE;
 }
@@ -609,15 +578,7 @@ CcCopyWrite (
                 return FALSE;
             }
 
-            _SEH2_TRY
-            {
-                RtlCopyMemory((PVOID)((ULONG_PTR)Vacb->BaseAddress + VacbOffset), Buffer, VacbLength);
-            }
-            _SEH2_EXCEPT(CcpCheckInvalidUserBuffer(_SEH2_GetExceptionInformation(), Buffer, VacbLength))
-            {
-                ExRaiseStatus(STATUS_INVALID_USER_BUFFER);
-            }
-            _SEH2_END;
+            RtlCopyMemory((PVOID)((ULONG_PTR)Vacb->BaseAddress + VacbOffset), Buffer, VacbLength);
 
             Buffer = (PVOID)((ULONG_PTR)Buffer + VacbLength);
             CurrentOffset += VacbLength;
