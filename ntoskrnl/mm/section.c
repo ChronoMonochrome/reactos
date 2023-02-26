@@ -4114,6 +4114,9 @@ MmCanFileBeTruncated (IN PSECTION_OBJECT_POINTERS SectionObjectPointer,
     return Ret;
 }
 
+
+
+
 /*
  * @implemented
  */
