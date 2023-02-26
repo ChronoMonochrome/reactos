@@ -1081,18 +1081,17 @@ NtSetSystemPowerState(IN POWER_ACTION SystemAction,
         /* Check if we're still in an invalid status */
         if (!NT_SUCCESS(Status)) break;
 
-        /* Flush all volumes and the registry */
-        DPRINT("Flushing volumes\n");
-        PopFlushVolumes(PopAction.Shutdown);
-
 #ifndef NEWCC
         /* Flush dirty cache pages */
         /* XXX: Is that still mandatory? As now we'll wait on lazy writer to complete? */
-        CcRosFlushDirtyPages(MAXULONG, &Dummy, TRUE, FALSE);
-        DPRINT("Cache flushed %lu pages\n", Dummy);
+        CcRosFlushDirtyPages(MAXULONG, &Dummy, TRUE, FALSE); //HACK: We really should wait here!
 #else
         Dummy = 0;
 #endif
+
+        /* Flush all volumes and the registry */
+        DPRINT("Flushing volumes, cache flushed %lu pages\n", Dummy);
+        PopFlushVolumes(PopAction.Shutdown);
 
         /* Set IRP for drivers */
         PopAction.IrpMinor = IRP_MN_SET_POWER;
