@@ -1494,11 +1494,6 @@ MiMapViewOfDataSection(IN PCONTROL_AREA ControlArea,
     if (!NT_SUCCESS(Status))
     {
         ExFreePoolWithTag(Vad, 'ldaV');
-        MiDereferenceControlArea(ControlArea);
-
-        KeAcquireGuardedMutex(&MmSectionCommitMutex);
-        Segment->NumberOfCommittedPages -= QuotaCharge;
-        KeReleaseGuardedMutex(&MmSectionCommitMutex);
         return Status;
     }
 
@@ -1511,13 +1506,6 @@ MiMapViewOfDataSection(IN PCONTROL_AREA ControlArea,
                            AllocationType);
     if (!NT_SUCCESS(Status))
     {
-        ExFreePoolWithTag(Vad, 'ldaV');
-        MiDereferenceControlArea(ControlArea);
-
-        KeAcquireGuardedMutex(&MmSectionCommitMutex);
-        Segment->NumberOfCommittedPages -= QuotaCharge;
-        KeReleaseGuardedMutex(&MmSectionCommitMutex);
-
         PsReturnProcessNonPagedPoolQuota(PsGetCurrentProcess(), sizeof(MMVAD_LONG));
         return Status;
     }
