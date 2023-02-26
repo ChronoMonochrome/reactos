@@ -1517,7 +1517,7 @@ ExpReallocateBigPageTable(
     NewTable = MiAllocatePoolPages(NonPagedPool, NewSizeInBytes);
     if (NewTable == NULL)
     {
-        DPRINT("Could not allocate %lu bytes for new big page table\n", NewSizeInBytes);
+        DPRINT1("Could not allocate %lu bytes for new big page table\n", NewSizeInBytes);
         KeReleaseSpinLock(&ExpLargePoolTableLock, OldIrql);
         return FALSE;
     }

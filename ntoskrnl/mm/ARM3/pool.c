@@ -835,7 +835,7 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
         //
         // Ran out of memory
         //
-        DPRINT("Out of NP Expansion Pool\n");
+        DPRINT1("Out of NP Expansion Pool\n");
         return NULL;
     }
 
