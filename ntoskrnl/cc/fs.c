@@ -180,10 +180,7 @@ CcPurgeCacheSection (
 
     SharedCacheMap = SectionObjectPointer->SharedCacheMap;
     if (!SharedCacheMap)
-    {
-        Success = TRUE;
-        goto purgeMm;
-    }
+        return FALSE;
 
     StartOffset = FileOffset != NULL ? FileOffset->QuadPart : 0;
     if (Length == 0 || FileOffset == NULL)
@@ -259,11 +256,6 @@ CcPurgeCacheSection (
         Refs = CcRosVacbDecRefCount(Vacb);
         ASSERT(Refs == 0);
     }
-
-    /* Now make sure that Mm doesn't hold some pages here. */
-purgeMm:
-    if (Success)
-        Success = MmPurgeSegment(SectionObjectPointer, FileOffset, Length);
 
     return Success;
 }
