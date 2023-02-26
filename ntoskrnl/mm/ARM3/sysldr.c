@@ -2423,6 +2423,8 @@ MiSetSystemCodeProtection(
 
     /* Flush it all */
     KeFlushEntireTb(TRUE, TRUE);
+
+    return;
 }
 
 VOID
@@ -2547,20 +2549,17 @@ NTAPI
 MiSetPagingOfDriver(IN PMMPTE PointerPte,
                     IN PMMPTE LastPte)
 {
-#ifdef ENABLE_MISETPAGINGOFDRIVER
     PVOID ImageBase;
     PETHREAD CurrentThread = PsGetCurrentThread();
     PFN_COUNT PageCount = 0;
     PFN_NUMBER PageFrameIndex;
     PMMPFN Pfn1;
-#endif // ENABLE_MISETPAGINGOFDRIVER
-
     PAGED_CODE();
 
-#ifndef ENABLE_MISETPAGINGOFDRIVER
     /* The page fault handler is broken and doesn't page back in! */
     DPRINT1("WARNING: MiSetPagingOfDriver() called, but paging is broken! ignoring!\n");
-#else  // ENABLE_MISETPAGINGOFDRIVER
+    return;
+
     /* Get the driver's base address */
     ImageBase = MiPteToAddress(PointerPte);
     ASSERT(MI_IS_SESSION_IMAGE_ADDRESS(ImageBase) == FALSE);
@@ -2598,7 +2597,6 @@ MiSetPagingOfDriver(IN PMMPTE PointerPte,
         /* Update counters */
         InterlockedExchangeAdd((PLONG)&MmTotalSystemDriverPages, PageCount);
     }
-#endif // ENABLE_MISETPAGINGOFDRIVER
 }
 
 VOID
