@@ -2477,6 +2477,17 @@ MiDecrementPageTableReferences(IN PVOID Address)
     ASSERT(*RefCount < PTE_PER_PAGE);
     return *RefCount;
 }
+
+FORCEINLINE
+USHORT
+MiQueryPageTableReferences(IN PVOID Address)
+{
+    PUSHORT RefCount;
+
+    RefCount = &MmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)];
+
+    return *RefCount;
+}
 #else
 FORCEINLINE
 USHORT
@@ -2530,6 +2541,24 @@ MiDecrementPageTableReferences(IN PVOID Address)
 
     ASSERT(Pfn->OriginalPte.u.Soft.UsedPageTableEntries < PTE_PER_PAGE);
 
+    return Pfn->OriginalPte.u.Soft.UsedPageTableEntries;
+}
+
+FORCEINLINE
+USHORT
+MiQueryPageTableReferences(IN PVOID Address)
+{
+    PMMPDE PointerPde;
+    PMMPFN Pfn;
+
+    /* Make sure we're locked */
+    ASSERT((PsGetCurrentThread()->OwnsProcessWorkingSetExclusive) || (PsGetCurrentThread()->OwnsProcessWorkingSetShared));
+
+    PointerPde = MiAddressToPde(Address);
+    ASSERT(PointerPde->u.Hard.Valid);
+
+    /* This lies on the PFN */
+    Pfn = MiGetPfnEntry(PFN_FROM_PDE(PointerPde));
     return Pfn->OriginalPte.u.Soft.UsedPageTableEntries;
 }
 #endif
