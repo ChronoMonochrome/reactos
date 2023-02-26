@@ -1897,7 +1897,6 @@ MmAccessFaultSectionView(PMMSUPPORT AddressSpace,
     PMM_SECTION_SEGMENT Segment;
     PFN_NUMBER OldPage;
     PFN_NUMBER NewPage;
-    PFN_NUMBER UnmappedPage;
     PVOID PAddress;
     LARGE_INTEGER Offset;
     PMM_REGION Region;
@@ -1905,7 +1904,6 @@ MmAccessFaultSectionView(PMMSUPPORT AddressSpace,
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
     BOOLEAN Cow = FALSE;
     ULONG NewProtect;
-    BOOLEAN Unmapped;
 
     DPRINT("MmAccessFaultSectionView(%p, %p, %p)\n", AddressSpace, MemoryArea, Address);
 
@@ -2005,17 +2003,7 @@ MmAccessFaultSectionView(PMMSUPPORT AddressSpace,
      * Unshare the old page.
      */
     DPRINT("Swapping page (Old %x New %x)\n", OldPage, NewPage);
-    Unmapped = MmDeleteVirtualMapping(Process, PAddress, NULL, &UnmappedPage);
-    if (!Unmapped || (UnmappedPage != OldPage))
-    {
-        /* Uh , we had a page just before, but suddenly it changes. Someone corrupted us. */
-        KeBugCheckEx(MEMORY_MANAGEMENT,
-                    (ULONG_PTR)Process,
-                    (ULONG_PTR)PAddress,
-                    (ULONG_PTR)__FILE__,
-                    __LINE__);
-    }
-
+    MmDeleteVirtualMapping(Process, PAddress, NULL, NULL);
     if (Process)
         MmDeleteRmap(OldPage, Process, PAddress);
     MmUnsharePageEntrySectionSegment(MemoryArea, Segment, &Offset, FALSE, FALSE, NULL);

@@ -119,12 +119,7 @@ BOOLEAN
 MiIsPageTablePresent(PVOID Address)
 {
 #if _MI_PAGING_LEVELS == 2
-    BOOLEAN Ret = MmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)] != 0;
-
-    /* Some sanity check while we're here */
-    ASSERT(Ret == (MiAddressToPde(Address)->u.Hard.Valid != 0));
-
-    return Ret;
+    return MmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)] != 0;
 #else
     PMMPDE PointerPde;
     PMMPPE PointerPpe;
@@ -222,29 +217,16 @@ MmGetPfnForProcess(PEPROCESS Process,
     return Page;
 }
 
-/**
- * @brief Deletes the virtual mapping and optionally gives back the page & dirty bit.
- *
- * @param Process - The process this address belongs to, or NULL if system address.
- * @param Address - The address to unmap.
- * @param WasDirty - Optional param receiving the dirty bit of the PTE.
- * @param Page - Optional param receiving the page number previously mapped to this address.
- *
- * @return Whether there was actually a page mapped at the given address.
+VOID
+NTAPI
+MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
+                       BOOLEAN* WasDirty, PPFN_NUMBER Page)
+/*
+ * FUNCTION: Delete a virtual mapping
  */
-_Success_(return)
-BOOLEAN
-MmDeleteVirtualMapping(
-    _In_opt_ PEPROCESS Process,
-    _In_ PVOID Address,
-    _Out_opt_ BOOLEAN* WasDirty,
-    _Out_opt_ PPFN_NUMBER Page)
 {
     PMMPTE PointerPte;
     MMPTE OldPte;
-    BOOLEAN ValidPde;
-
-    OldPte.u.Long = 0;
 
     DPRINT("MmDeleteVirtualMapping(%p, %p, %p, %p)\n", Process, Address, WasDirty, Page);
 
@@ -262,10 +244,18 @@ MmDeleteVirtualMapping(
             KeBugCheck(MEMORY_MANAGEMENT);
         }
 #if (_MI_PAGING_LEVELS == 2)
-        ValidPde = MiSynchronizeSystemPde(MiAddressToPde(Address));
+        if (!MiSynchronizeSystemPde(MiAddressToPde(Address)))
 #else
-        ValidPde = MiIsPdeForAddressValid(Address);
+        if (!MiIsPdeForAddressValid(Address))
 #endif
+        {
+            /* There can't be a page if there is no PDE */
+            if (WasDirty)
+                *WasDirty = FALSE;
+            if (Page)
+                *Page = 0;
+            return;
+        }
     }
     else
     {
@@ -276,56 +266,61 @@ MmDeleteVirtualMapping(
         }
 
         /* Only for current process !!! */
-        ASSERT(Process == PsGetCurrentProcess());
+        ASSERT(Process = PsGetCurrentProcess());
         MiLockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
 
-        ValidPde = MiIsPageTablePresent(Address);
-        if (ValidPde)
+        /* No PDE --> No page */
+        if (!MiIsPageTablePresent(Address))
         {
-            MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
+            MiUnlockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
+            if (WasDirty)
+                *WasDirty = 0;
+            if (Page)
+                *Page = 0;
+            return;
         }
+
+        MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
     }
 
-    /* Get the PTE if we're having anything */
-    if (ValidPde)
-    {
-        PointerPte = MiAddressToPte(Address);
-        OldPte.u.Long = InterlockedExchangePte(PointerPte, 0);
+    PointerPte = MiAddressToPte(Address);
+    OldPte.u.Long = InterlockedExchangePte(PointerPte, 0);
 
+    if (OldPte.u.Long == 0)
+    {
+        /* There was nothing here */
+        if (Address < MmSystemRangeStart)
+            MiUnlockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
+        if (WasDirty)
+            *WasDirty = 0;
+        if (Page)
+            *Page = 0;
+        return;
+    }
+
+    /* It must have been present, or not a swap entry */
+    ASSERT(OldPte.u.Hard.Valid || !FlagOn(OldPte.u.Long, 0x800));
+
+    if (OldPte.u.Hard.Valid)
         KeInvalidateTlbEntry(Address);
 
-        if (OldPte.u.Long != 0)
-        {
-            /* It must have been present, or not a swap entry */
-            ASSERT(OldPte.u.Hard.Valid || !FlagOn(OldPte.u.Long, 0x800));
-            if (WasDirty != NULL)
-            {
-                *WasDirty = !!OldPte.u.Hard.Dirty;
-            }
-            if (Page != NULL)
-            {
-                *Page = OldPte.u.Hard.PageFrameNumber;
-            }
-        }
-    }
-
-    if (Process != NULL)
+    if (Address < MmSystemRangeStart)
     {
-        /* Remove PDE reference, if needed */
-        if (OldPte.u.Long != 0)
+        /* Remove PDE reference */
+        if (MiDecrementPageTableReferences(Address) == 0)
         {
-            if (MiDecrementPageTableReferences(Address) == 0)
-            {
-                KIRQL OldIrql = MiAcquirePfnLock();
-                MiDeletePde(MiAddressToPde(Address), Process);
-                MiReleasePfnLock(OldIrql);
-            }
+            KIRQL OldIrql = MiAcquirePfnLock();
+            MiDeletePde(MiAddressToPde(Address), Process);
+            MiReleasePfnLock(OldIrql);
         }
 
         MiUnlockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
     }
 
-    return OldPte.u.Long != 0;
+    if (WasDirty)
+        *WasDirty = !!OldPte.u.Hard.Dirty;
+    if (Page)
+        *Page = OldPte.u.Hard.PageFrameNumber;
 }
 
 
@@ -636,7 +631,7 @@ MmCreateVirtualMappingUnsafe(PEPROCESS Process,
         }
 
         /* Only for current process !!! */
-        ASSERT(Process == PsGetCurrentProcess());
+        ASSERT(Process = PsGetCurrentProcess());
         MiLockProcessWorkingSetUnsafe(Process, PsGetCurrentThread());
 
         MiMakePdeExistAndMakeValid(MiAddressToPde(Address), Process, MM_NOIRQL);
