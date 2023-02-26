@@ -1446,14 +1446,14 @@ ExGetPoolTagInfo(IN PSYSTEM_POOLTAG_INFORMATION SystemInformation,
 }
 
 _IRQL_requires_(DISPATCH_LEVEL)
-static
 BOOLEAN
-ExpReallocateBigPageTable(
-    _In_ _IRQL_restores_ KIRQL OldIrql,
-    _In_ BOOLEAN Shrink)
+NTAPI
+ExpExpandBigPageTable(
+    _In_ _IRQL_restores_ KIRQL OldIrql)
 {
-    SIZE_T OldSize = PoolBigPageTableSize;
-    SIZE_T NewSize, NewSizeInBytes;
+    ULONG OldSize = PoolBigPageTableSize;
+    ULONG NewSize = 2 * OldSize;
+    ULONG NewSizeInBytes;
     PPOOL_TRACKER_BIG_PAGES NewTable;
     PPOOL_TRACKER_BIG_PAGES OldTable;
     ULONG i;
@@ -1465,41 +1465,11 @@ ExpReallocateBigPageTable(
     ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);
 
     /* Make sure we don't overflow */
-    if (Shrink)
+    if (!NT_SUCCESS(RtlULongMult(2,
+                                 OldSize * sizeof(POOL_TRACKER_BIG_PAGES),
+                                 &NewSizeInBytes)))
     {
-        NewSize = OldSize / 2;
-
-        /* Make sure we don't shrink too much. */
-        ASSERT(NewSize >= ExpPoolBigEntriesInUse);
-
-        NewSize = ALIGN_UP_BY(NewSize, PAGE_SIZE / sizeof(POOL_TRACKER_BIG_PAGES));
-        ASSERT(NewSize <= OldSize);
-
-        /* If there is only one page left, then keep it around. Not a failure either. */
-        if (NewSize == OldSize)
-        {
-            ASSERT(NewSize == (PAGE_SIZE / sizeof(POOL_TRACKER_BIG_PAGES)));
-            KeReleaseSpinLock(&ExpLargePoolTableLock, OldIrql);
-            return TRUE;
-        }
-    }
-    else
-    {
-        if (!NT_SUCCESS(RtlSIZETMult(2, OldSize, &NewSize)))
-        {
-            DPRINT1("Overflow expanding big page table. Size=%lu\n", OldSize);
-            KeReleaseSpinLock(&ExpLargePoolTableLock, OldIrql);
-            return FALSE;
-        }
-
-        /* Make sure we don't stupidly waste pages */
-        NewSize = ALIGN_DOWN_BY(NewSize, PAGE_SIZE / sizeof(POOL_TRACKER_BIG_PAGES));
-        ASSERT(NewSize > OldSize);
-    }
-
-    if (!NT_SUCCESS(RtlSIZETMult(sizeof(POOL_TRACKER_BIG_PAGES), NewSize, &NewSizeInBytes)))
-    {
-        DPRINT1("Overflow while calculating big page table size. Size=%lu\n", OldSize);
+        DPRINT1("Overflow expanding big page table. Size=%lu\n", OldSize);
         KeReleaseSpinLock(&ExpLargePoolTableLock, OldIrql);
         return FALSE;
     }
@@ -1512,7 +1482,7 @@ ExpReallocateBigPageTable(
         return FALSE;
     }
 
-    DPRINT("%s big pool tracker table to %lu entries\n", Shrink ? "Shrinking" : "Expanding", NewSize);
+    DPRINT("Expanding big pool tracker table to %lu entries\n", NewSize);
 
     /* Initialize the new table */
     RtlZeroMemory(NewTable, NewSizeInBytes);
@@ -1533,16 +1503,15 @@ ExpReallocateBigPageTable(
         }
 
         /* Recalculate the hash due to the new table size */
-        Hash = ExpComputePartialHashForAddress(OldTable[i].Va) % HashMask;
+        Hash = ExpComputePartialHashForAddress(OldTable[i].Va) & HashMask;
 
         /* Find the location in the new table */
         while (!((ULONG_PTR)NewTable[Hash].Va & POOL_BIG_TABLE_ENTRY_FREE))
         {
-            if (++Hash == NewSize)
-                Hash = 0;
+            Hash = (Hash + 1) & HashMask;
         }
 
-        /* We must have space */
+        /* We just enlarged the table, so we must have space */
         ASSERT((ULONG_PTR)NewTable[Hash].Va & POOL_BIG_TABLE_ENTRY_FREE);
 
         /* Finally, copy the item */
@@ -1618,20 +1587,20 @@ Retry:
 
             //
             // Add one more entry to the count, and see if we're getting within
-            // 75% of the table size, at which point we'll do an expansion now
+            // 25% of the table size, at which point we'll do an expansion now
             // to avoid blocking too hard later on.
             //
             // Note that we only do this if it's also been the 16th time that we
             // keep losing the race or that we are not finding a free entry anymore,
             // which implies a massive number of concurrent big pool allocations.
             //
-            ExpPoolBigEntriesInUse++;
-            if ((i >= 16) && (ExpPoolBigEntriesInUse > (TableSize * 3 / 4)))
+            InterlockedIncrementUL(&ExpPoolBigEntriesInUse);
+            if ((i >= 16) && (ExpPoolBigEntriesInUse > (TableSize / 4)))
             {
                 DPRINT("Attempting expansion since we now have %lu entries\n",
                         ExpPoolBigEntriesInUse);
                 ASSERT(TableSize == PoolBigPageTableSize);
-                ExpReallocateBigPageTable(OldIrql, FALSE);
+                ExpExpandBigPageTable(OldIrql);
                 return TRUE;
             }
 
@@ -1657,7 +1626,7 @@ Retry:
     // to attempt expanding the table
     //
     ASSERT(TableSize == PoolBigPageTableSize);
-    if (ExpReallocateBigPageTable(OldIrql, FALSE))
+    if (ExpExpandBigPageTable(OldIrql))
     {
         goto Retry;
     }
@@ -1735,20 +1704,8 @@ ExpFindAndRemoveTagBigPages(IN PVOID Va,
     // the lock and return the tag that was located
     //
     InterlockedIncrement((PLONG)&Entry->Va);
-
-    ExpPoolBigEntriesInUse--;
-
-    /* If reaching 12.5% of the size (or whatever integer rounding gets us to),
-     * halve the allocation size, which will get us to 25% of space used. */
-    if (ExpPoolBigEntriesInUse < (PoolBigPageTableSize / 8))
-    {
-        /* Shrink the table. */
-        ExpReallocateBigPageTable(OldIrql, TRUE);
-    }
-    else
-    {
-        KeReleaseSpinLock(&ExpLargePoolTableLock, OldIrql);
-    }
+    InterlockedDecrementUL(&ExpPoolBigEntriesInUse);
+    KeReleaseSpinLock(&ExpLargePoolTableLock, OldIrql);
     return PoolTag;
 }
 
