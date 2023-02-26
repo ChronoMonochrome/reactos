@@ -3250,8 +3250,6 @@ MmMapViewOfSegment(
     NTSTATUS Status;
     ULONG Granularity;
 
-    ASSERT(ViewSize != 0);
-
     if (Segment->WriteCopy)
     {
         /* We have to do this because the not present fault
@@ -3491,8 +3489,6 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
 
     {
         if (MemoryArea) ASSERT(MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3);
-
-        DPRINT1("Unable to find memory area at address %p.\n", BaseAddress);
         MmUnlockAddressSpace(AddressSpace);
         return STATUS_NOT_MAPPED_VIEW;
     }
@@ -4014,9 +4010,7 @@ MmMapViewOfSection(IN PVOID SectionObject,
         {
             (*ViewSize) = Section->SizeOfSection.QuadPart - ViewOffset;
         }
-        else if ((ExGetPreviousMode() == UserMode) &&
-            (((*ViewSize)+ViewOffset) > Section->SizeOfSection.QuadPart) &&
-            (!Section->u.Flags.Reserve))
+        else if ((ExGetPreviousMode() == UserMode) && (((*ViewSize)+ViewOffset) > Section->SizeOfSection.QuadPart))
         {
             /* Dubious */
             (*ViewSize) = MIN(Section->SizeOfSection.QuadPart - ViewOffset, SIZE_T_MAX - PAGE_SIZE);
@@ -4172,7 +4166,6 @@ MmMapViewInSystemSpaceEx (
     PMM_SECTION_SEGMENT Segment;
     PMMSUPPORT AddressSpace;
     NTSTATUS Status;
-
     PAGED_CODE();
 
     if (MiIsRosSectionObject(SectionObject) == FALSE)
@@ -4189,48 +4182,14 @@ MmMapViewInSystemSpaceEx (
     Section = SectionObject;
     Segment = (PMM_SECTION_SEGMENT)Section->Segment;
 
-    if (*ViewSize == 0)
-    {
-        LONGLONG MapSizeLL;
-
-        /* Page-align the mapping */
-        SectionOffset->LowPart = PAGE_ROUND_DOWN(SectionOffset->LowPart);
-
-        if (!NT_SUCCESS(RtlLongLongSub(Section->SizeOfSection.QuadPart, SectionOffset->QuadPart, &MapSizeLL)))
-            return STATUS_INVALID_VIEW_SIZE;
-
-        if (!NT_SUCCESS(RtlLongLongToSIZET(MapSizeLL, ViewSize)))
-            return STATUS_INVALID_VIEW_SIZE;
-    }
-    else
-    {
-        LONGLONG HelperLL;
-
-        /* Get the map end */
-        if (!NT_SUCCESS(RtlLongLongAdd(SectionOffset->QuadPart, *ViewSize, &HelperLL)))
-            return STATUS_INVALID_VIEW_SIZE;
-
-        /* Round it up, if needed */
-        if (HelperLL % PAGE_SIZE)
-        {
-            if (!NT_SUCCESS(RtlLongLongAdd(HelperLL, PAGE_SIZE - (HelperLL % PAGE_SIZE), &HelperLL)))
-                return STATUS_INVALID_VIEW_SIZE;
-        }
-
-        /* Now that we have the mapping end, we can align down its start */
-        SectionOffset->LowPart = PAGE_ROUND_DOWN(SectionOffset->LowPart);
-
-        /* Get the new size */
-        if (!NT_SUCCESS(RtlLongLongSub(HelperLL, SectionOffset->QuadPart, &HelperLL)))
-            return STATUS_INVALID_VIEW_SIZE;
-
-        if (!NT_SUCCESS(RtlLongLongToSIZET(HelperLL, ViewSize)))
-            return STATUS_INVALID_VIEW_SIZE;
-    }
-
     AddressSpace = MmGetKernelAddressSpace();
 
     MmLockAddressSpace(AddressSpace);
+
+    if (*ViewSize == 0)
+    {
+        *ViewSize = MIN((Section->SizeOfSection.QuadPart - SectionOffset->QuadPart), SIZE_T_MAX);
+    }
 
     MmLockSectionSegment(Segment);
 
@@ -4547,7 +4506,6 @@ MmMakePagesResident(
     MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, Address);
     if (MemoryArea == NULL)
     {
-        DPRINT1("Unable to find memory area at address %p.\n", Address);
         MmUnlockAddressSpace(AddressSpace);
         return STATUS_NOT_MAPPED_VIEW;
     }
@@ -4651,7 +4609,6 @@ MmRosFlushVirtualMemory(
     if ((MemoryArea == NULL) || (MemoryArea->Type != MEMORY_AREA_SECTION_VIEW) ||
             (MemoryArea->VadNode.u.VadFlags.VadType == VadImageMap))
     {
-        DPRINT1("Unable to find memory area at address %p.\n", Address);
         MmUnlockAddressSpace(AddressSpace);
         return STATUS_NOT_MAPPED_VIEW;
     }
@@ -4810,7 +4767,6 @@ MmMakePagesDirty(
     MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, Address);
     if (MemoryArea == NULL)
     {
-        DPRINT1("Unable to find memory area at address %p.\n", Address);
         MmUnlockAddressSpace(AddressSpace);
         return STATUS_NOT_MAPPED_VIEW;
     }
