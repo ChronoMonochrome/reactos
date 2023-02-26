@@ -385,6 +385,10 @@ VOID
 NTAPI
 CcRosReferenceCache(PFILE_OBJECT FileObject);
 
+VOID
+NTAPI
+CcRosRemoveIfClosed(PSECTION_OBJECT_POINTERS SectionObjectPointer);
+
 NTSTATUS
 NTAPI
 CcRosReleaseVacb(
