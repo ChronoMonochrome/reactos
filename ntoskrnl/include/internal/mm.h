@@ -1219,13 +1219,6 @@ MmDeleteVirtualMapping(
     PPFN_NUMBER Page
 );
 
-/* arch/procsup.c ************************************************************/
-
-BOOLEAN
-MiArchCreateProcessAddressSpace(
-    _In_ PEPROCESS Process,
-    _In_ PULONG_PTR DirectoryTableBase);
-
 /* wset.c ********************************************************************/
 
 NTSTATUS
