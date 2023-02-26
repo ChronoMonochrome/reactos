@@ -17,6 +17,8 @@
 
 /* GLOBALS *******************************************************************/
 
+VOID NTAPI MiInitializeUserPfnBitmap(VOID);
+
 BOOLEAN Mm64BitPhysicalAddress = FALSE;
 ULONG MmReadClusterSize;
 //
@@ -233,6 +235,7 @@ MmInitSystem(IN ULONG Phase,
     MiDbgDumpAddressSpace();
 
     MmInitGlobalKernelPageDirectory();
+    MiInitializeUserPfnBitmap();
     MmInitializeMemoryConsumer(MC_USER, MmTrimUserMemory);
     MmInitializeRmapList();
     MmInitSectionImplementation();
