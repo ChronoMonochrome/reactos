@@ -556,13 +556,16 @@ CcCopyWrite (
     if (!SharedCacheMap)
         return FALSE;
 
+    /* FIXME: Honor FileObject FO_WRITE_THROUGH flag */
     ASSERT((FileOffset->QuadPart + Length) <= SharedCacheMap->SectionSize.QuadPart);
+
+    ASSERT((FileObject->Flags & FO_WRITE_THROUGH) == 0);
 
     CurrentOffset = FileOffset->QuadPart;
     while(CurrentOffset < WriteEnd)
     {
         ULONG VacbOffset = CurrentOffset % VACB_MAPPING_GRANULARITY;
-        ULONG VacbLength = min(WriteEnd - CurrentOffset, VACB_MAPPING_GRANULARITY - VacbOffset);
+        ULONG VacbLength = min(Length, VACB_MAPPING_GRANULARITY - VacbOffset);
 
         Status = CcRosGetVacb(SharedCacheMap, CurrentOffset, &Vacb);
         if (!NT_SUCCESS(Status))
@@ -582,6 +585,7 @@ CcCopyWrite (
 
             Buffer = (PVOID)((ULONG_PTR)Buffer + VacbLength);
             CurrentOffset += VacbLength;
+            Length -= VacbLength;
 
             /* Tell Mm */
             Status = MmMakePagesDirty(NULL, Add2Ptr(Vacb->BaseAddress, VacbOffset), VacbLength);
@@ -595,10 +599,6 @@ CcCopyWrite (
         }
         _SEH2_END;
     }
-
-    /* Flush if needed */
-    if (FileObject->Flags & FO_WRITE_THROUGH)
-        CcFlushCache(FileObject->SectionObjectPointer, FileOffset, Length, NULL);
 
     return TRUE;
 }
@@ -757,7 +757,7 @@ CcZeroData (
     Length = EndOffset->QuadPart - StartOffset->QuadPart;
     WriteOffset.QuadPart = StartOffset->QuadPart;
 
-    if (!SharedCacheMap)
+    if (!SharedCacheMap || (FileObject->Flags & FO_WRITE_THROUGH))
     {
         /* Make this a non-cached write */
         IO_STATUS_BLOCK Iosb;
@@ -847,10 +847,6 @@ CcZeroData (
         }
         _SEH2_END;
     }
-
-    /* Flush if needed */
-    if (FileObject->Flags & FO_WRITE_THROUGH)
-        CcFlushCache(FileObject->SectionObjectPointer, StartOffset, EndOffset->QuadPart - StartOffset->QuadPart, NULL);
 
     return TRUE;
 }
