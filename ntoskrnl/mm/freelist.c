@@ -613,6 +613,7 @@ MmAllocPage(ULONG Type)
 #if MI_TRACE_PFNS
     switch(Type)
     {
+    case MC_CACHE:
     case MC_SYSTEM:
         MI_SET_USAGE(MI_USAGE_CACHE);
         break;
