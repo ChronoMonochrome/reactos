@@ -436,12 +436,7 @@ MmGetRmapListHeadPage(PFN_NUMBER Pfn)
     /* Get the entry */
     Pfn1 = MiGetPfnEntry(Pfn);
     ASSERT(Pfn1);
-
-    if (!MI_IS_ROS_PFN(Pfn1))
-    {
-        MiReleasePfnLock(oldIrql);
-        return NULL;
-    }
+    ASSERT_IS_ROS_PFN(Pfn1);
 
     /* Get the list head */
     ListHead = Pfn1->RmapListHead;
