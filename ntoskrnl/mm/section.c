@@ -220,7 +220,8 @@ static ULONG SectionCharacteristicsToProtect[16] =
     PAGE_EXECUTE_READWRITE, /* 15 = WRITABLE, READABLE, EXECUTABLE, SHARED */
 };
 
-extern ACCESS_MASK MmMakeFileAccess[8];
+extern ULONG MmMakeFileAccess [];
+ACCESS_MASK NTAPI MiArm3GetCorrectFileAccessMask(IN ACCESS_MASK SectionPageProtection);
 static GENERIC_MAPPING MmpSectionMapping =
 {
     STANDARD_RIGHTS_READ | SECTION_MAP_READ | SECTION_QUERY,
