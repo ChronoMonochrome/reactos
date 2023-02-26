@@ -809,7 +809,7 @@ CcZeroData (
         return TRUE;
     }
 
-    ASSERT(EndOffset->QuadPart <= SharedCacheMap->SectionSize.QuadPart);
+    ASSERT(EndOffset->QuadPart <= SharedCacheMap->FileSize.QuadPart);
 
     while(WriteOffset.QuadPart < EndOffset->QuadPart)
     {
