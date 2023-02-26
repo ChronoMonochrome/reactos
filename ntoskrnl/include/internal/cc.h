@@ -345,6 +345,14 @@ BOOLEAN
 NTAPI
 CcInitializeCacheManager(VOID);
 
+NTSTATUS
+NTAPI
+CcRosUnmapVacb(
+    PROS_SHARED_CACHE_MAP SharedCacheMap,
+    LONGLONG FileOffset,
+    BOOLEAN NowDirty
+);
+
 PROS_VACB
 NTAPI
 CcRosLookupVacb(
@@ -355,6 +363,13 @@ CcRosLookupVacb(
 VOID
 NTAPI
 CcInitCacheZeroPage(VOID);
+
+NTSTATUS
+NTAPI
+CcRosMarkDirtyFile(
+    PROS_SHARED_CACHE_MAP SharedCacheMap,
+    LONGLONG FileOffset
+);
 
 VOID
 NTAPI
