@@ -60,17 +60,17 @@ ExpKdbgExtPool(
         /* Get address */
         if (!KdbpGetHexNumber(Argv[1], &Address))
         {
-            KdbpPrint("Invalid parameter: %s\n", Argv[1]);
+            KdbpPrint("Invalid parameter: %s\n", Argv[0]);
             return TRUE;
         }
     }
 
     if (Argc > 2)
     {
-        /* Get flags */
-        if (!KdbpGetHexNumber(Argv[2], &Flags))
+        /* Get address */
+        if (!KdbpGetHexNumber(Argv[1], &Flags))
         {
-            KdbpPrint("Invalid parameter: %s\n", Argv[2]);
+            KdbpPrint("Invalid parameter: %s\n", Argv[0]);
             return TRUE;
         }
     }
@@ -185,14 +185,14 @@ ExpKdbgExtPoolUsed(
             ExpKdbgExtPoolUsedGetTag(Argv[2], &Tag, &Mask);
             if (!KdbpGetHexNumber(Argv[1], &Flags))
             {
-                KdbpPrint("Invalid parameter: %s\n", Argv[1]);
+                KdbpPrint("Invalid parameter: %s\n", Argv[0]);
             }
         }
         else
         {
             /* Otherwise, try to find out whether that's flags */
             if (strlen(Argv[1]) == 1 ||
-                (strlen(Argv[1]) == 3 && Argv[1][0] == '0' && (Argv[1][1] == 'x' || Argv[1][1] == 'X')))
+                (strlen(Argv[1]) == 3 && Argv[1][0] == '0' && Argv[1][1] == 'x'))
             {
                 /* Fallback: if reading flags failed, assume it's a tag */
                 if (!KdbpGetHexNumber(Argv[1], &Flags))
@@ -568,7 +568,7 @@ ExpKdbgExtIrpFind(
     {
         if (!KdbpGetHexNumber(Argv[2], &FindCtxt.RestartAddress))
         {
-            KdbpPrint("Invalid parameter: %s\n", Argv[2]);
+            KdbpPrint("Invalid parameter: %s\n", Argv[0]);
             FindCtxt.RestartAddress = 0;
         }
     }
