@@ -189,6 +189,7 @@ typedef struct _MM_SECTION_SEGMENT
 	ULONG RefCount;
 	ULONG SegFlags;
 
+	LIST_ENTRY ListOfSegments;
 	RTL_GENERIC_TABLE PageTable;
 } MM_SECTION_SEGMENT, *PMM_SECTION_SEGMENT;
 
