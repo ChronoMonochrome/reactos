@@ -729,7 +729,7 @@ FORCEINLINE
 BOOLEAN
 MiIsUserPte(PVOID Address)
 {
-    return (Address >= (PVOID)PTE_BASE) && (Address <= (PVOID)MiHighestUserPte);
+    return (Address <= (PVOID)MiHighestUserPte);
 }
 #endif
 
