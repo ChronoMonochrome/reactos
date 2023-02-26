@@ -14,6 +14,7 @@
 #include <debug.h>
 
 ULONG ProcessCount;
+BOOLEAN CcPfEnablePrefetcher;
 SIZE_T KeXStateLength = sizeof(XSAVE_FORMAT);
 
 VOID
