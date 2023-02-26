@@ -161,7 +161,6 @@ CcPurgeCacheSection (
     IN BOOLEAN UninitializeCacheMaps)
 {
     PROS_SHARED_CACHE_MAP SharedCacheMap;
-    PPRIVATE_CACHE_MAP PrivateCacheMap;
     LONGLONG StartOffset;
     LONGLONG EndOffset;
     LIST_ENTRY FreeList;
@@ -174,34 +173,16 @@ CcPurgeCacheSection (
     CCTRACE(CC_API_DEBUG, "SectionObjectPointer=%p\n FileOffset=%p Length=%lu UninitializeCacheMaps=%d",
         SectionObjectPointer, FileOffset, Length, UninitializeCacheMaps);
 
-    /* Obtain the shared cache from the section */
+    if (UninitializeCacheMaps)
+    {
+        DPRINT1("FIXME: CcPurgeCacheSection not uninitializing private cache maps\n");
+    }
+
     SharedCacheMap = SectionObjectPointer->SharedCacheMap;
     if (!SharedCacheMap)
     {
         Success = TRUE;
         goto purgeMm;
-    }
-
-    if (UninitializeCacheMaps)
-    {
-        /*
-         * We have gotten the acknowledgement that
-         * the caller wants to unintialize the private
-         * cache maps so let's do this. Since we already
-         * have the shared cache map from above, iterate
-         * over that cache's private lists.
-         */
-        while (!IsListEmpty(&SharedCacheMap->PrivateList))
-        {
-            /*
-             * This list is not empty, grab the
-             * private cache map.
-             */
-            PrivateCacheMap = CONTAINING_RECORD(SharedCacheMap->PrivateList.Flink, PRIVATE_CACHE_MAP, PrivateLinks);
-
-            /* Unintialize the private cache now */
-            CcUninitializeCacheMap(PrivateCacheMap->FileObject, NULL, NULL);
-        }
     }
 
     StartOffset = FileOffset != NULL ? FileOffset->QuadPart : 0;
