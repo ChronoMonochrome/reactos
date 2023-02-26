@@ -566,9 +566,10 @@ NTAPI
 MmDereferencePage(PFN_NUMBER Pfn)
 {
     PMMPFN Pfn1;
+    KIRQL OldIrql;
     DPRINT("MmDereferencePage(PhysicalAddress %x)\n", Pfn << PAGE_SHIFT);
 
-    MI_ASSERT_PFN_LOCK_HELD();
+    OldIrql = MiAcquirePfnLock();
 
     Pfn1 = MiGetPfnEntry(Pfn);
     ASSERT(Pfn1);
@@ -595,6 +596,8 @@ MmDereferencePage(PFN_NUMBER Pfn)
         DPRINT("Legacy free: %lx\n", Pfn);
         MiInsertPageInFreeList(Pfn);
     }
+
+    MiReleasePfnLock(OldIrql);
 }
 
 PFN_NUMBER
