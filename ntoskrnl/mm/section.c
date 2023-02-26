@@ -4621,7 +4621,7 @@ MmRosFlushVirtualMemory(
         if (Entry != 0)
         {
             /* This will write the page to disk, if needed */
-            MmCheckDirtySegment(Segment, &SegmentOffset, Process ? MmIsDirtyPage(Process, CurrentAddress) : FALSE, FALSE);
+            MmCheckDirtySegment(Segment, &SegmentOffset, MmIsDirtyPage(Process, CurrentAddress), FALSE);
             Iosb->Information += PAGE_SIZE;
         }
         SegmentOffset.QuadPart += PAGE_SIZE;
@@ -4695,10 +4695,7 @@ MmCheckDirtySegment(
 
         /* Drop the reference we got */
         Entry = MAKE_SSE(Page << PAGE_SHIFT, SHARE_COUNT_FROM_SSE(Entry) - 1);
-        if (DirtyAgain)
-        {
-            Entry = DIRTY_SSE(Entry);
-        }
+        if (DirtyAgain) Entry = DIRTY_SSE(Entry);
         MmSetPageEntrySectionSegment(Segment, Offset, Entry);
     }
 
