@@ -901,15 +901,12 @@ MiInsertSharedUserPageVad(
         return Status;
     }
 
-    if (Process->QuotaBlock != NULL)
+    Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
+    if (!NT_SUCCESS(Status))
     {
-        Status = PsChargeProcessNonPagedPoolQuota(Process, sizeof(MMVAD_LONG));
-        if (!NT_SUCCESS(Status))
-        {
-            DPRINT1("Ran out of quota.\n");
-            ExFreePoolWithTag(Vad, 'ldaV');
-            return Status;
-        }
+        DPRINT1("Ran out of quota.\n");
+        ExFreePoolWithTag(Vad, 'ldaV');
+        return Status;
     }
 
 
