@@ -29,6 +29,8 @@
  * etc.
  */
 #define POOL_BIG_TABLE_USE_RATE 4
+#define POOL_BIG_TABLE_LOW_THRESHOLD (POOL_BIG_TABLE_USE_RATE * 2)
+#define POOL_BIG_TABLE_HIGH_THRESHOLD ((POOL_BIG_TABLE_USE_RATE - 1) / POOL_BIG_TABLE_USE_RATE)
 
 typedef struct _POOL_DPC_CONTEXT
 {
@@ -1634,7 +1636,7 @@ Retry:
             // which implies a massive number of concurrent big pool allocations.
             //
             ExpPoolBigEntriesInUse++;
-            if ((i >= 16) && (ExpPoolBigEntriesInUse > (TableSize * (POOL_BIG_TABLE_USE_RATE - 1) / POOL_BIG_TABLE_USE_RATE)))
+            if ((i >= 16) && (ExpPoolBigEntriesInUse > (TableSize * POOL_BIG_TABLE_HIGH_THRESHOLD)))
             {
                 DPRINT("Attempting expansion since we now have %lu entries\n",
                         ExpPoolBigEntriesInUse);
@@ -1748,7 +1750,7 @@ ExpFindAndRemoveTagBigPages(IN PVOID Va,
 
     /* If reaching 12.5% of the size (or whatever integer rounding gets us to),
      * halve the allocation size, which will get us to 25% of space used. */
-    if (ExpPoolBigEntriesInUse < (PoolBigPageTableSize / (POOL_BIG_TABLE_USE_RATE * 2)))
+    if (ExpPoolBigEntriesInUse < (PoolBigPageTableSize / POOL_BIG_TABLE_LOW_THRESHOLD))
     {
         /* Shrink the table. */
         ExpReallocateBigPageTable(OldIrql, TRUE);
