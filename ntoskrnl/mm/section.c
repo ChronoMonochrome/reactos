@@ -1637,7 +1637,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         Status = MmCreateVirtualMapping(Process,
                                         PAddress,
                                         Region->Protect,
-                                        Page);
+                                        &Page,
+                                        1);
         if (!NT_SUCCESS(Status))
         {
             DPRINT("MmCreateVirtualMapping failed, not out of memory\n");
@@ -1679,7 +1680,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         Status = MmCreateVirtualMappingUnsafe(Process,
                                               PAddress,
                                               Region->Protect,
-                                              Page);
+                                              &Page,
+                                              1);
         if (!NT_SUCCESS(Status))
         {
             DPRINT("MmCreateVirtualMappingUnsafe failed, not out of memory\n");
@@ -1728,7 +1730,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
             MmSetPageEntrySectionSegment(Segment, &Offset, MAKE_SSE(Page << PAGE_SHIFT, 1));
             MmUnlockSectionSegment(Segment);
 
-            Status = MmCreateVirtualMapping(Process, PAddress, Attributes, Page);
+            Status = MmCreateVirtualMapping(Process, PAddress, Attributes, &Page, 1);
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("Unable to create virtual mapping\n");
@@ -1827,7 +1829,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         Status = MmCreateVirtualMapping(Process,
                                         PAddress,
                                         Attributes,
-                                        Page);
+                                        &Page,
+                                        1);
         if (!NT_SUCCESS(Status))
         {
             DPRINT1("Unable to create virtual mapping\n");
@@ -1855,7 +1858,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         Status = MmCreateVirtualMapping(Process,
                                         PAddress,
                                         Attributes,
-                                        Page);
+                                        &Page,
+                                        1);
         if (!NT_SUCCESS(Status))
         {
             DPRINT1("Unable to create virtual mapping\n");
@@ -1982,7 +1986,8 @@ MmAccessFaultSectionView(PMMSUPPORT AddressSpace,
     Status = MmCreateVirtualMapping(Process,
                                     PAddress,
                                     Region->Protect,
-                                    NewPage);
+                                    &NewPage,
+                                    1);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("MmCreateVirtualMapping failed, unable to create virtual mapping, not out of memory\n");
