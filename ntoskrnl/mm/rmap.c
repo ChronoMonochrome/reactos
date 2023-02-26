@@ -19,6 +19,7 @@
 /* GLOBALS ******************************************************************/
 
 static NPAGED_LOOKASIDE_LIST RmapLookasideList;
+FAST_MUTEX RmapListLock;
 
 /* FUNCTIONS ****************************************************************/
 
@@ -37,6 +38,7 @@ VOID
 NTAPI
 MmInitializeRmapList(VOID)
 {
+    ExInitializeFastMutex(&RmapListLock);
     ExInitializeNPagedLookasideList (&RmapLookasideList,
                                      NULL,
                                      RmapListFree,
@@ -53,27 +55,37 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
     PMM_RMAP_ENTRY entry;
     PMEMORY_AREA MemoryArea;
     PMMSUPPORT AddressSpace;
+    ULONG Type;
     PVOID Address;
     PEPROCESS Process;
+    ULONGLONG Offset;
     NTSTATUS Status = STATUS_SUCCESS;
-    PMM_SECTION_SEGMENT Segment;
-    LARGE_INTEGER SegmentOffset;
-    KIRQL OldIrql;
 
-    OldIrql = MiAcquirePfnLock();
-
+    ExAcquireFastMutex(&RmapListLock);
     entry = MmGetRmapListHeadPage(Page);
+
+#ifdef NEWCC
+    // Special case for NEWCC: we can have a page that's only in a segment
+    // page table
+    if (entry && RMAP_IS_SEGMENT(entry->Address) && entry->Next == NULL)
+    {
+        /* NEWCC does locking itself */
+        ExReleaseFastMutex(&RmapListLock);
+        return MmpPageOutPhysicalAddress(Page);
+    }
+#endif
 
     while (entry && RMAP_IS_SEGMENT(entry->Address))
         entry = entry->Next;
 
     if (entry == NULL)
     {
-        MiReleasePfnLock(OldIrql);
-        return STATUS_UNSUCCESSFUL;
+        ExReleaseFastMutex(&RmapListLock);
+        return(STATUS_UNSUCCESSFUL);
     }
 
     Process = entry->Process;
+
     Address = entry->Address;
 
     if ((((ULONG_PTR)Address) & 0xFFF) != 0)
@@ -85,12 +97,12 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
     {
         if (!ExAcquireRundownProtection(&Process->RundownProtect))
         {
-            MiReleasePfnLock(OldIrql);
+            ExReleaseFastMutex(&RmapListLock);
             return STATUS_PROCESS_IS_TERMINATING;
         }
 
         Status = ObReferenceObjectByPointer(Process, PROCESS_ALL_ACCESS, NULL, KernelMode);
-        MiReleasePfnLock(OldIrql);
+        ExReleaseFastMutex(&RmapListLock);
         if (!NT_SUCCESS(Status))
         {
             ExReleaseRundownProtection(&Process->RundownProtect);
@@ -100,12 +112,11 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
     }
     else
     {
-        MiReleasePfnLock(OldIrql);
+        ExReleaseFastMutex(&RmapListLock);
         AddressSpace = MmGetKernelAddressSpace();
     }
 
     MmLockAddressSpace(AddressSpace);
-
     MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, Address);
     if (MemoryArea == NULL || MemoryArea->DeleteInProgress)
     {
@@ -117,27 +128,23 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
         }
         return(STATUS_UNSUCCESSFUL);
     }
-
-    if (MemoryArea->Type == MEMORY_AREA_SECTION_VIEW)
+    Type = MemoryArea->Type;
+    if (Type == MEMORY_AREA_SECTION_VIEW)
     {
         ULONG_PTR Entry;
-        BOOLEAN Dirty;
-        PFN_NUMBER MapPage;
-        LARGE_INTEGER Offset;
-        BOOLEAN Released;
-
-        Offset.QuadPart = MemoryArea->SectionData.ViewOffset.QuadPart +
+        Offset = MemoryArea->SectionData.ViewOffset.QuadPart +
                  ((ULONG_PTR)Address - MA_GetStartingAddress(MemoryArea));
 
-        Segment = MemoryArea->SectionData.Segment;
+        MmLockSectionSegment(MemoryArea->SectionData.Segment);
 
-        MmLockSectionSegment(Segment);
-
-        Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
+        /*
+         * Get or create a pageop
+         */
+        Entry = MmGetPageEntrySectionSegment(MemoryArea->SectionData.Segment,
+                                             (PLARGE_INTEGER)&Offset);
         if (Entry && MM_IS_WAIT_PTE(Entry))
         {
-            /* The segment is being read or something. Give up */
-            MmUnlockSectionSegment(Segment);
+            MmUnlockSectionSegment(MemoryArea->SectionData.Segment);
             MmUnlockAddressSpace(AddressSpace);
             if (Address < MmSystemRangeStart)
             {
@@ -147,101 +154,18 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
             return(STATUS_UNSUCCESSFUL);
         }
 
-        /* Delete this virtual mapping in the process */
-        MmDeleteVirtualMapping(Process, Address, &Dirty, &MapPage);
-        ASSERT(MapPage == Page);
+        MmSetPageEntrySectionSegment(MemoryArea->SectionData.Segment, (PLARGE_INTEGER)&Offset, MAKE_SWAP_SSE(MM_WAIT_ENTRY));
 
-        if (Page != PFN_FROM_SSE(Entry))
-        {
-            SWAPENTRY SwapEntry;
-
-            /* This page is private to the process */
-            MmUnlockSectionSegment(Segment);
-
-            /* Check if we should write it back to the page file */
-            SwapEntry = MmGetSavedSwapEntryPage(Page);
-
-            if ((SwapEntry == 0) && Dirty)
-            {
-                /* We don't have a Swap entry, yet the page is dirty. Get one */
-                SwapEntry = MmAllocSwapPage();
-                if (!SwapEntry)
-                {
-                    PMM_REGION Region = MmFindRegion((PVOID)MA_GetStartingAddress(MemoryArea),
-                            &MemoryArea->SectionData.RegionListHead,
-                            Address, NULL);
-
-                    /* We can't, so let this page in the Process VM */
-                    MmCreateVirtualMapping(Process, Address, Region->Protect, &Page, 1);
-                    MmSetDirtyPage(Process, Address);
-
-                    MmUnlockAddressSpace(AddressSpace);
-                    return STATUS_UNSUCCESSFUL;
-                }
-            }
-
-            if (Dirty)
-            {
-                Status = MmWriteToSwapPage(SwapEntry, Page);
-                if (!NT_SUCCESS(Status))
-                {
-                    /* We failed at saving the content of this page. Keep it in */
-                    PMM_REGION Region = MmFindRegion((PVOID)MA_GetStartingAddress(MemoryArea),
-                            &MemoryArea->SectionData.RegionListHead,
-                            Address, NULL);
-
-                    /* This Swap Entry is useless to us */
-                    MmSetSavedSwapEntryPage(Page, 0);
-                    MmFreeSwapPage(SwapEntry);
-
-                    /* We can't, so let this page in the Process VM */
-                    MmCreateVirtualMapping(Process, Address, Region->Protect, &Page, 1);
-                    MmSetDirtyPage(Process, Address);
-
-                    MmUnlockAddressSpace(AddressSpace);
-                    return STATUS_UNSUCCESSFUL;
-                }
-            }
-
-            if (SwapEntry)
-            {
-                /* Keep this in the process VM */
-                MmCreatePageFileMapping(Process, Address, SwapEntry);
-                MmSetSavedSwapEntryPage(Page, 0);
-            }
-
-            MmUnlockAddressSpace(AddressSpace);
-
-            /* We can finally let this page go */
-            MmDeleteRmap(Page, Process, Address);
-            MmReleasePageMemoryConsumer(MC_USER, Page);
-
-            ASSERT(MmGetRmapListHeadPage(Page) == NULL);
-
-            if (Address < MmSystemRangeStart)
-            {
-                ExReleaseRundownProtection(&Process->RundownProtect);
-                ObDereferenceObject(Process);
-            }
-            return STATUS_SUCCESS;
-        }
-
-        /* Delete this RMAP */
-        MmDeleteRmap(Page, Process, Address);
-
-        /* One less mapping referencing this segment */
-        Released = MmUnsharePageEntrySectionSegment(MemoryArea, Segment, &Offset, Dirty, FALSE, NULL);
-
-        MmUnlockSectionSegment(Segment);
+        /*
+         * Release locks now we have a page op.
+         */
+        MmUnlockSectionSegment(MemoryArea->SectionData.Segment);
         MmUnlockAddressSpace(AddressSpace);
 
-        if (Address < MmSystemRangeStart)
-        {
-            ExReleaseRundownProtection(&Process->RundownProtect);
-            ObDereferenceObject(Process);
-        }
-
-        if (Released) return STATUS_SUCCESS;
+        /*
+         * Do the actual page out work.
+         */
+        Status = MmPageOutSectionView(AddressSpace, MemoryArea, Address, Entry);
     }
 #ifdef NEWCC
     else if (Type == MEMORY_AREA_CACHE)
@@ -261,29 +185,7 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
         ExReleaseRundownProtection(&Process->RundownProtect);
         ObDereferenceObject(Process);
     }
-
-    /* Now write this page to file, if needed */
-    Segment = MmGetSectionAssociation(Page, &SegmentOffset);
-    if (Segment)
-    {
-        BOOLEAN Released;
-
-        MmLockSectionSegment(Segment);
-
-        Released = MmCheckDirtySegment(Segment, &SegmentOffset, FALSE, TRUE);
-
-        MmUnlockSectionSegment(Segment);
-
-        MmDereferenceSegment(Segment);
-
-        if (Released)
-        {
-            return STATUS_SUCCESS;
-        }
-    }
-
-    /* If we are here, then we didn't release the page */
-    return STATUS_UNSUCCESSFUL;
+    return(Status);
 }
 
 VOID
@@ -291,13 +193,12 @@ NTAPI
 MmSetCleanAllRmaps(PFN_NUMBER Page)
 {
     PMM_RMAP_ENTRY current_entry;
-    KIRQL OldIrql;
 
-    OldIrql = MiAcquirePfnLock();
+    ExAcquireFastMutex(&RmapListLock);
     current_entry = MmGetRmapListHeadPage(Page);
     if (current_entry == NULL)
     {
-        DPRINT1("MmSetCleanAllRmaps: No rmaps.\n");
+        DPRINT1("MmIsDirtyRmap: No rmaps.\n");
         KeBugCheck(MEMORY_MANAGEMENT);
     }
     while (current_entry != NULL)
@@ -306,7 +207,29 @@ MmSetCleanAllRmaps(PFN_NUMBER Page)
             MmSetCleanPage(current_entry->Process, current_entry->Address);
         current_entry = current_entry->Next;
     }
-    MiReleasePfnLock(OldIrql);
+    ExReleaseFastMutex(&RmapListLock);
+}
+
+VOID
+NTAPI
+MmSetDirtyAllRmaps(PFN_NUMBER Page)
+{
+    PMM_RMAP_ENTRY current_entry;
+
+    ExAcquireFastMutex(&RmapListLock);
+    current_entry = MmGetRmapListHeadPage(Page);
+    if (current_entry == NULL)
+    {
+        DPRINT1("MmIsDirtyRmap: No rmaps.\n");
+        KeBugCheck(MEMORY_MANAGEMENT);
+    }
+    while (current_entry != NULL)
+    {
+        if (!RMAP_IS_SEGMENT(current_entry->Address))
+            MmSetDirtyPage(current_entry->Process, current_entry->Address);
+        current_entry = current_entry->Next;
+    }
+    ExReleaseFastMutex(&RmapListLock);
 }
 
 BOOLEAN
@@ -314,31 +237,27 @@ NTAPI
 MmIsDirtyPageRmap(PFN_NUMBER Page)
 {
     PMM_RMAP_ENTRY current_entry;
-    KIRQL OldIrql;
-    BOOLEAN Dirty = FALSE;
 
-    OldIrql = MiAcquirePfnLock();
+    ExAcquireFastMutex(&RmapListLock);
     current_entry = MmGetRmapListHeadPage(Page);
     if (current_entry == NULL)
     {
-        DPRINT1("MmIsDirtyPageRmap: No rmaps.\n");
-        KeBugCheck(MEMORY_MANAGEMENT);
+        ExReleaseFastMutex(&RmapListLock);
+        return(FALSE);
     }
     while (current_entry != NULL)
     {
-        if (!RMAP_IS_SEGMENT(current_entry->Address))
+        if (
+            !RMAP_IS_SEGMENT(current_entry->Address) &&
+            MmIsDirtyPage(current_entry->Process, current_entry->Address))
         {
-            if (MmIsDirtyPage(current_entry->Process, current_entry->Address))
-            {
-                Dirty = TRUE;
-                break;
-            }
+            ExReleaseFastMutex(&RmapListLock);
+            return(TRUE);
         }
         current_entry = current_entry->Next;
     }
-    MiReleasePfnLock(OldIrql);
-
-    return Dirty;
+    ExReleaseFastMutex(&RmapListLock);
+    return(FALSE);
 }
 
 VOID
@@ -349,8 +268,6 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
     PMM_RMAP_ENTRY current_entry;
     PMM_RMAP_ENTRY new_entry;
     ULONG PrevSize;
-    KIRQL OldIrql;
-
     if (!RMAP_IS_SEGMENT(Address))
         Address = (PVOID)PAGE_ROUND_DOWN(Address);
 
@@ -381,7 +298,7 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
         KeBugCheck(MEMORY_MANAGEMENT);
     }
 
-    OldIrql = MiAcquirePfnLock();
+    ExAcquireFastMutex(&RmapListLock);
     current_entry = MmGetRmapListHeadPage(Page);
     new_entry->Next = current_entry;
 #if DBG
@@ -401,8 +318,7 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
     }
 #endif
     MmSetRmapListHeadPage(Page, new_entry);
-    MiReleasePfnLock(OldIrql);
-
+    ExReleaseFastMutex(&RmapListLock);
     if (!RMAP_IS_SEGMENT(Address))
     {
         if (Process == NULL)
@@ -422,13 +338,61 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
 
 VOID
 NTAPI
+MmDeleteAllRmaps(PFN_NUMBER Page, PVOID Context,
+                 VOID (*DeleteMapping)(PVOID Context, PEPROCESS Process,
+                                       PVOID Address))
+{
+    PMM_RMAP_ENTRY current_entry;
+    PMM_RMAP_ENTRY previous_entry;
+    PEPROCESS Process;
+
+    ExAcquireFastMutex(&RmapListLock);
+    current_entry = MmGetRmapListHeadPage(Page);
+    if (current_entry == NULL)
+    {
+        DPRINT1("MmDeleteAllRmaps: No rmaps.\n");
+        KeBugCheck(MEMORY_MANAGEMENT);
+    }
+    MmSetRmapListHeadPage(Page, NULL);
+    ExReleaseFastMutex(&RmapListLock);
+
+    while (current_entry != NULL)
+    {
+        previous_entry = current_entry;
+        current_entry = current_entry->Next;
+        if (!RMAP_IS_SEGMENT(previous_entry->Address))
+        {
+            if (DeleteMapping)
+            {
+                DeleteMapping(Context, previous_entry->Process,
+                              previous_entry->Address);
+            }
+            Process = previous_entry->Process;
+            ExFreeToNPagedLookasideList(&RmapLookasideList, previous_entry);
+            if (Process == NULL)
+            {
+                Process = PsInitialSystemProcess;
+            }
+            if (Process)
+            {
+                (void)InterlockedExchangeAddUL(&Process->Vm.WorkingSetSize, -PAGE_SIZE);
+            }
+        }
+        else
+        {
+            ExFreeToNPagedLookasideList(&RmapLookasideList, previous_entry);
+        }
+    }
+}
+
+VOID
+NTAPI
 MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
              PVOID Address)
 {
     PMM_RMAP_ENTRY current_entry, previous_entry;
-    KIRQL OldIrql;
 
-    OldIrql = MiAcquirePfnLock();
+    ExAcquireFastMutex(&RmapListLock);
     previous_entry = NULL;
     current_entry = MmGetRmapListHeadPage(Page);
 
@@ -445,8 +409,7 @@ MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
             {
                 previous_entry->Next = current_entry->Next;
             }
-            MiReleasePfnLock(OldIrql);
-
+            ExReleaseFastMutex(&RmapListLock);
             ExFreeToNPagedLookasideList(&RmapLookasideList, current_entry);
             if (!RMAP_IS_SEGMENT(Address))
             {
@@ -487,8 +450,8 @@ MmGetSegmentRmap(PFN_NUMBER Page, PULONG RawOffset)
 {
     PCACHE_SECTION_PAGE_TABLE Result = NULL;
     PMM_RMAP_ENTRY current_entry;//, previous_entry;
-    KIRQL OldIrql = MiAcquirePfnLock();
 
+    ExAcquireFastMutex(&RmapListLock);
     //previous_entry = NULL;
     current_entry = MmGetRmapListHeadPage(Page);
     while (current_entry != NULL)
@@ -497,20 +460,14 @@ MmGetSegmentRmap(PFN_NUMBER Page, PULONG RawOffset)
         {
             Result = (PCACHE_SECTION_PAGE_TABLE)current_entry->Process;
             *RawOffset = (ULONG_PTR)current_entry->Address & ~RMAP_SEGMENT_MASK;
-            if (*Result->Segment->Flags & MM_SEGMENT_INDELETE)
-            {
-                MiReleasePfnLock(OldIrql);
-                return NULL;
-            }
-
-            InterlockedIncrementUL(Result->Segment->ReferenceCount);
-            MiReleasePfnLock(OldIrql);
+            InterlockedIncrementUL(&Result->Segment->ReferenceCount);
+            ExReleaseFastMutex(&RmapListLock);
             return Result;
         }
         //previous_entry = current_entry;
         current_entry = current_entry->Next;
     }
-    MiReleasePfnLock(OldIrql);
+    ExReleaseFastMutex(&RmapListLock);
     return NULL;
 }
 
@@ -525,8 +482,8 @@ NTAPI
 MmDeleteSectionAssociation(PFN_NUMBER Page)
 {
     PMM_RMAP_ENTRY current_entry, previous_entry;
-    KIRQL OldIrql = MiAcquirePfnLock();
 
+    ExAcquireFastMutex(&RmapListLock);
     previous_entry = NULL;
     current_entry = MmGetRmapListHeadPage(Page);
     while (current_entry != NULL)
@@ -541,12 +498,12 @@ MmDeleteSectionAssociation(PFN_NUMBER Page)
             {
                 previous_entry->Next = current_entry->Next;
             }
-            MiReleasePfnLock(OldIrql);
+            ExReleaseFastMutex(&RmapListLock);
             ExFreeToNPagedLookasideList(&RmapLookasideList, current_entry);
             return;
         }
         previous_entry = current_entry;
         current_entry = current_entry->Next;
     }
-    MiReleasePfnLock(OldIrql);
+    ExReleaseFastMutex(&RmapListLock);
 }

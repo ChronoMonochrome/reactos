@@ -3,7 +3,7 @@
 //
 // Define this if you want debugging support
 //
-#define _CC_DEBUG_                                      0x0
+#define _CC_DEBUG_                                      0x00
 
 //
 // These define the Debug Masks Supported
@@ -179,8 +179,6 @@ typedef struct _ROS_SHARED_CACHE_MAP
     ULONG DirtyPages;
     LIST_ENTRY SharedCacheMapLinks;
     ULONG Flags;
-    PVOID Section;
-    PKEVENT CreateEvent;
     PCACHE_MANAGER_CALLBACKS Callbacks;
     PVOID LazyWriteContext;
     LIST_ENTRY PrivateList;
@@ -199,12 +197,13 @@ typedef struct _ROS_SHARED_CACHE_MAP
 
 #define READAHEAD_DISABLED 0x1
 #define WRITEBEHIND_DISABLED 0x2
-#define SHARED_CACHE_MAP_IN_CREATION 0x4
 
 typedef struct _ROS_VACB
 {
     /* Base address of the region where the view's data is mapped. */
     PVOID BaseAddress;
+    /* Memory area representing the region where the view's data is mapped. */
+    struct _MEMORY_AREA* MemoryArea;
     /* Are the contents of the view valid. */
     BOOLEAN Valid;
     /* Are the contents of the view newer than those on disk. */
@@ -318,20 +317,12 @@ NTAPI
 CcRosGetVacb(
     PROS_SHARED_CACHE_MAP SharedCacheMap,
     LONGLONG FileOffset,
+    PLONGLONG BaseOffset,
+    PVOID *BaseAddress,
+    PBOOLEAN UptoDate,
     PROS_VACB *Vacb
 );
 
-BOOLEAN
-NTAPI
-CcRosEnsureVacbResident(
-    _In_ PROS_VACB Vacb,
-    _In_ BOOLEAN Wait,
-    _In_ BOOLEAN NoRead,
-    _In_ ULONG Offset,
-    _In_ ULONG Length
-);
-
-CODE_SEG("INIT")
 VOID
 NTAPI
 CcInitView(VOID);
@@ -340,7 +331,6 @@ VOID
 NTAPI
 CcShutdownLazyWriter(VOID);
 
-CODE_SEG("INIT")
 BOOLEAN
 NTAPI
 CcInitializeCacheManager(VOID);
@@ -418,6 +408,8 @@ NTAPI
 CcRosRequestVacb(
     PROS_SHARED_CACHE_MAP SharedCacheMap,
     LONGLONG FileOffset,
+    PVOID* BaseAddress,
+    PBOOLEAN UptoDate,
     PROS_VACB *Vacb
 );
 

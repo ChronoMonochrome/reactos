@@ -10,9 +10,12 @@
 /* INCLUDES ******************************************************************/
 
 #include <ntoskrnl.h>
-
 #define NDEBUG
 #include <debug.h>
+
+/* GLOBALS   *****************************************************************/
+
+NTSTATUS CcRosInternalFreeVacb(PROS_VACB Vacb);
 
 /* FUNCTIONS *****************************************************************/
 
@@ -269,9 +272,8 @@ CcSetFileSizes (
     IN PFILE_OBJECT FileObject,
     IN PCC_FILE_SIZES FileSizes)
 {
-    KIRQL OldIrql;
+    KIRQL oldirql;
     PROS_SHARED_CACHE_MAP SharedCacheMap;
-    LARGE_INTEGER OldSectionSize;
 
     CCTRACE(CC_API_DEBUG, "FileObject=%p FileSizes=%p\n",
         FileObject, FileSizes);
@@ -292,14 +294,7 @@ CcSetFileSizes (
     if (SharedCacheMap == NULL)
         return;
 
-    /* Update the relevant fields */
-    KeAcquireSpinLock(&SharedCacheMap->CacheMapLock, &OldIrql);
-    OldSectionSize = SharedCacheMap->SectionSize;
-    SharedCacheMap->SectionSize = FileSizes->AllocationSize;
-    SharedCacheMap->FileSize = FileSizes->FileSize;
-    KeReleaseSpinLock(&SharedCacheMap->CacheMapLock, OldIrql);
-
-    if (FileSizes->AllocationSize.QuadPart < OldSectionSize.QuadPart)
+    if (FileSizes->AllocationSize.QuadPart < SharedCacheMap->SectionSize.QuadPart)
     {
         CcPurgeCacheSection(FileObject->SectionObjectPointer,
                             &FileSizes->AllocationSize,
@@ -308,9 +303,46 @@ CcSetFileSizes (
     }
     else
     {
-        /* Extend our section object */
-        MmExtendSection(SharedCacheMap->Section, &SharedCacheMap->SectionSize);
+        PROS_VACB LastVacb;
+
+        /*
+         * If file (allocation) size has increased, then we need to check whether
+         * it just grows in a single VACB (the last one).
+         * If so, we must mark the VACB as invalid to trigger a read to the
+         * FSD at the next VACB usage, and thus avoid returning garbage
+         */
+
+        /* Check for allocation size and the last VACB */
+        if (SharedCacheMap->SectionSize.QuadPart < FileSizes->AllocationSize.QuadPart &&
+            SharedCacheMap->SectionSize.QuadPart % VACB_MAPPING_GRANULARITY)
+        {
+            LastVacb = CcRosLookupVacb(SharedCacheMap,
+                                       SharedCacheMap->SectionSize.QuadPart);
+            if (LastVacb != NULL)
+            {
+                /* Mark it as invalid */
+                CcRosReleaseVacb(SharedCacheMap, LastVacb, LastVacb->Dirty ? LastVacb->Valid : FALSE, FALSE, FALSE);
+            }
+        }
+
+        /* Check for file size and the last VACB */
+        if (SharedCacheMap->FileSize.QuadPart < FileSizes->FileSize.QuadPart &&
+            SharedCacheMap->FileSize.QuadPart % VACB_MAPPING_GRANULARITY)
+        {
+            LastVacb = CcRosLookupVacb(SharedCacheMap,
+                                       SharedCacheMap->FileSize.QuadPart);
+            if (LastVacb != NULL)
+            {
+                /* Mark it as invalid */
+                CcRosReleaseVacb(SharedCacheMap, LastVacb, LastVacb->Dirty ? LastVacb->Valid : FALSE, FALSE, FALSE);
+            }
+        }
     }
+
+    KeAcquireSpinLock(&SharedCacheMap->CacheMapLock, &oldirql);
+    SharedCacheMap->SectionSize = FileSizes->AllocationSize;
+    SharedCacheMap->FileSize = FileSizes->FileSize;
+    KeReleaseSpinLock(&SharedCacheMap->CacheMapLock, oldirql);
 }
 
 /*

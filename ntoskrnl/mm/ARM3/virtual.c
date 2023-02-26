@@ -1356,8 +1356,12 @@ MmFlushVirtualMemory(IN PEPROCESS Process,
                      OUT PIO_STATUS_BLOCK IoStatusBlock)
 {
     PAGED_CODE();
-    /* For now we call the old Mm */
-    return MmRosFlushVirtualMemory(Process, BaseAddress, RegionSize, IoStatusBlock);
+    UNIMPLEMENTED;
+
+    //
+    // Fake success
+    //
+    return STATUS_SUCCESS;
 }
 
 ULONG

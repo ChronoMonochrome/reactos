@@ -719,6 +719,7 @@ QSI_DEF(SystemPerformanceInformation)
      *   Not sure this is right. 8^\
      */
     Spi->CommittedPages = MiMemoryConsumers[MC_SYSTEM].PagesUsed +
+                          MiMemoryConsumers[MC_CACHE].PagesUsed +
                           MiMemoryConsumers[MC_USER].PagesUsed +
                           MiUsedSwapPages;
     /*
@@ -766,7 +767,7 @@ QSI_DEF(SystemPerformanceInformation)
     Spi->TotalSystemDriverPages = 0; /* FIXME */
     Spi->Spare3Count = 0; /* FIXME */
 
-    Spi->ResidentSystemCachePage = 0; /* FIXME */
+    Spi->ResidentSystemCachePage = MiMemoryConsumers[MC_CACHE].PagesUsed;
     Spi->ResidentPagedPoolPage = 0; /* FIXME */
 
     Spi->ResidentSystemDriverPage = 0; /* FIXME */
@@ -1495,10 +1496,13 @@ QSI_DEF(SystemFileCacheInformation)
     RtlZeroMemory(Sci, sizeof(SYSTEM_FILECACHE_INFORMATION));
 
     /* Return the Byte size not the page size. */
-    Sci->CurrentSize = 0; /* FIXME */
-    Sci->PeakSize = 0; /* FIXME */
+    Sci->CurrentSize =
+        MiMemoryConsumers[MC_CACHE].PagesUsed * PAGE_SIZE;
+    Sci->PeakSize =
+            MiMemoryConsumers[MC_CACHE].PagesUsed * PAGE_SIZE; /* FIXME */
     /* Taskmgr multiplies this one by page size right away */
-    Sci->CurrentSizeIncludingTransitionInPages = 0; /* FIXME: Should be */
+    Sci->CurrentSizeIncludingTransitionInPages =
+        MiMemoryConsumers[MC_CACHE].PagesUsed; /* FIXME: Should be */
     /* system working set and standby pages. */
     Sci->PageFaultCount = 0; /* FIXME */
     Sci->MinimumWorkingSet = 0; /* FIXME */
