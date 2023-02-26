@@ -297,6 +297,13 @@ MI_IS_MAPPED_PTE(PMMPTE PointerPte)
 
 CODE_SEG("INIT")
 FORCEINLINE
+VOID
+MmInitGlobalKernelPageDirectory(VOID)
+{
+    /* Nothing to do */
+}
+
+FORCEINLINE
 BOOLEAN
 MiIsPdeForAddressValid(PVOID Address)
 {
