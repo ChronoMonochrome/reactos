@@ -1215,18 +1215,6 @@ MiReadPage(PMEMORY_AREA MemoryArea,
         Status = STATUS_SUCCESS;
     }
 
-    if ((SegOffset + PAGE_SIZE) > MemoryArea->SectionData.Segment->RawLength.QuadPart)
-    {
-        KIRQL OldIrql;
-        PUCHAR PageMap;
-
-        /* Zero out the end of it */
-        PageMap = MiMapPageInHyperSpace(PsGetCurrentProcess(), *Page, &OldIrql);
-        RtlZeroMemory(PageMap + MemoryArea->SectionData.Segment->RawLength.QuadPart - SegOffset,
-                      PAGE_SIZE - (MemoryArea->SectionData.Segment->RawLength.QuadPart - SegOffset));
-        MiUnmapPageInHyperSpace(PsGetCurrentProcess(), PageMap, OldIrql);
-    }
-
     return Status;
 }
 
@@ -1461,24 +1449,32 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
     {
         SWAPENTRY DummyEntry;
 
-        MmGetPageFileMapping(Process, Address, &SwapEntry);
-        if (SwapEntry == MM_WAIT_ENTRY)
+        /*
+         * Is it a wait entry?
+         */
+        if (HasSwapEntry)
         {
-            MmUnlockSectionSegment(Segment);
-            MmUnlockAddressSpace(AddressSpace);
-            MiWaitForPageEvent(NULL, NULL);
-            MmLockAddressSpace(AddressSpace);
-            return STATUS_MM_RESTART_OPERATION;
+            MmGetPageFileMapping(Process, Address, &SwapEntry);
+
+            if (SwapEntry == MM_WAIT_ENTRY)
+            {
+                MmUnlockSectionSegment(Segment);
+                MmUnlockAddressSpace(AddressSpace);
+                MiWaitForPageEvent(NULL, NULL);
+                MmLockAddressSpace(AddressSpace);
+                return STATUS_MM_RESTART_OPERATION;
+            }
+
+            /*
+             * Must be private page we have swapped out.
+             */
+
+            /*
+             * Sanity check
+             */
+            MmDeletePageFileMapping(Process, Address, &SwapEntry);
         }
 
-        /*
-            * Must be private page we have swapped out.
-            */
-
-        /*
-        * Sanity check
-        */
-        MmDeletePageFileMapping(Process, Address, &SwapEntry);
         MmUnlockSectionSegment(Segment);
 
         /* Tell everyone else we are serving the fault. */
@@ -1714,7 +1710,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         /* Map the page into the process address space */
         Status = MmCreateVirtualMapping(Process,
                                         PAddress,
-                                        Attributes,
+                                        Region->Protect,
                                         &Page,
                                         1);
         if (!NT_SUCCESS(Status))
@@ -3101,7 +3097,6 @@ MmCreateImageSection(PSECTION *SectionObject,
     if (ImageSectionObject == NULL)
     {
         NTSTATUS StatusExeFmt;
-        PMM_SECTION_SEGMENT DataSectionObject;
 
         ImageSectionObject = ExAllocatePoolWithTag(NonPagedPool, sizeof(MM_IMAGE_SECTION_OBJECT), TAG_MM_SECTION_SEGMENT);
         if (ImageSectionObject == NULL)
@@ -3118,46 +3113,7 @@ MmCreateImageSection(PSECTION *SectionObject,
         ImageSectionObject->RefCount = 1;
         FileObject->SectionObjectPointer->ImageSectionObject = ImageSectionObject;
 
-        /* Get a ref on the data section object */
-        DataSectionObject = FileObject->SectionObjectPointer->DataSectionObject;
-        while (DataSectionObject && (DataSectionObject->SegFlags & (MM_SEGMENT_INDELETE | MM_SEGMENT_INCREATE)))
-        {
-            LARGE_INTEGER ShortTime;
-
-            MiReleasePfnLock(OldIrql);
-
-            ShortTime.QuadPart = - 10 * 100 * 1000;
-            KeDelayExecutionThread(KernelMode, FALSE, &ShortTime);
-
-            OldIrql = MiAcquirePfnLock();
-            DataSectionObject = FileObject->SectionObjectPointer->DataSectionObject;
-            ASSERT(DataSectionObject->SegFlags & MM_DATAFILE_SEGMENT);
-        }
-
-        /* Get a ref on it. */
-        if (DataSectionObject)
-            InterlockedIncrementUL(&DataSectionObject->RefCount);
-
         MiReleasePfnLock(OldIrql);
-
-        if (DataSectionObject)
-        {
-            if ((DataSectionObject->SectionCount - (FileObject->SectionObjectPointer->SharedCacheMap != NULL)) > 0)
-            {
-                /* Someone's got a section opened. Deny creation */
-                DPRINT1("Denying image creation for %wZ: Sections opened: %lu.\n",
-                        &FileObject->FileName, DataSectionObject->SectionCount);
-                InterlockedExchangePointer(&FileObject->SectionObjectPointer->ImageSectionObject, NULL);
-                ExFreePoolWithTag(ImageSectionObject, TAG_MM_SECTION_SEGMENT);
-                MmDereferenceSegment(DataSectionObject);
-                ObDereferenceObject(FileObject);
-                ObDereferenceObject(Section);
-                return STATUS_ACCESS_DENIED;
-            }
-
-            /* Purge the cache. */
-            CcPurgeCacheSection(FileObject->SectionObjectPointer, NULL, 0, FALSE);
-        }
 
         StatusExeFmt = ExeFmtpCreateImageSection(FileObject, ImageSectionObject);
 
