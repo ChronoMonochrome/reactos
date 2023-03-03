@@ -4854,6 +4854,112 @@ BOOL WINAPI K32EnumProcesses(DWORD *lpdwProcessIDs, DWORD cb, DWORD *lpcbUsed)
     return TRUE;
 }
 
+/*
+ * @implemented
+ */
+DWORD
+WINAPI
+K32GetProcessImageFileNameW(HANDLE hProcess,
+                         LPWSTR lpImageFileName,
+                         DWORD nSize)
+{
+    PUNICODE_STRING ImageFileName;
+    SIZE_T BufferSize;
+    NTSTATUS Status;
+    DWORD Len;
+
+    /* Allocate string big enough to hold name */
+    BufferSize = sizeof(UNICODE_STRING) + (nSize * sizeof(WCHAR));
+    ImageFileName = LocalAlloc(LMEM_FIXED, BufferSize);
+    if (ImageFileName == NULL)
+    {
+        return 0;
+    }
+
+    /* Query name */
+    Status = NtQueryInformationProcess(hProcess,
+                                       ProcessImageFileName,
+                                       ImageFileName,
+                                       BufferSize,
+                                       NULL);
+    /* Len mismatch => buffer too small */
+    if (Status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        Status = STATUS_BUFFER_TOO_SMALL;
+    }
+    if (!NT_SUCCESS(Status))
+    {
+        SetLastError(RtlNtStatusToDosError(Status));
+        LocalFree(ImageFileName);
+        return 0;
+    }
+
+    /* Copy name and null-terminate if possible */
+    memcpy(lpImageFileName, ImageFileName->Buffer, ImageFileName->Length);
+    Len = ImageFileName->Length / sizeof(WCHAR);
+    if (Len < nSize)
+    {
+        lpImageFileName[Len] = UNICODE_NULL;
+    }
+
+    LocalFree(ImageFileName);
+    return Len;
+}
+
+
+/*
+ * @implemented
+ */
+DWORD
+WINAPI
+K32GetProcessImageFileNameA(HANDLE hProcess,
+                         LPSTR lpImageFileName,
+                         DWORD nSize)
+{
+    PUNICODE_STRING ImageFileName;
+    SIZE_T BufferSize;
+    NTSTATUS Status;
+    DWORD Len;
+
+    /* Allocate string big enough to hold name */
+    BufferSize = sizeof(UNICODE_STRING) + (nSize * sizeof(WCHAR));
+    ImageFileName = LocalAlloc(LMEM_FIXED, BufferSize);
+    if (ImageFileName == NULL)
+    {
+        return 0;
+    }
+
+    /* Query name */
+    Status = NtQueryInformationProcess(hProcess,
+                                       ProcessImageFileName,
+                                       ImageFileName,
+                                       BufferSize,
+                                       NULL);
+    /* Len mismatch => buffer too small */
+    if (Status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        Status = STATUS_BUFFER_TOO_SMALL;
+    }
+    if (!NT_SUCCESS(Status))
+    {
+        SetLastError(RtlNtStatusToDosError(Status));
+        LocalFree(ImageFileName);
+        return 0;
+    }
+
+    /* Copy name */
+    Len = WideCharToMultiByte(CP_ACP, 0, ImageFileName->Buffer,
+                              ImageFileName->Length, lpImageFileName, nSize, NULL, NULL);
+    /* If conversion was successful, don't return len with added \0 */
+    if (Len != 0)
+    {
+        Len -= sizeof(ANSI_NULL);
+    }
+
+    LocalFree(ImageFileName);
+    return Len;
+}
+
 typedef struct _PROCESS_MEMORY_COUNTERS {
   DWORD  cb;
   DWORD  PageFaultCount;

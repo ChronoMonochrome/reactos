@@ -1286,6 +1286,8 @@
 @ stdcall -version=0x600+ K32GetModuleFileNameExA(long long ptr long)
 @ stdcall -version=0x600+ K32GetModuleFileNameExW(long long ptr long)
 @ stdcall -version=0x600+ K32GetModuleInformation(long long ptr long)
+@ stdcall -version=0x600+ K32GetProcessImageFileNameA(ptr ptr long)
+@ stdcall -version=0x600+ K32GetProcessImageFileNameW(ptr ptr long)
 @ stdcall -version=0x600+ K32GetProcessMemoryInfo(ptr ptr long)
 @ stdcall -version=0x600+ PowerClearRequest(long long)
 @ stdcall -version=0x600+ PowerCreateRequest(ptr)
