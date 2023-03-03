@@ -338,7 +338,7 @@ OutputLine_stub(FILE *file, EXPORT *pexp)
 
     if (!bRelay)
     {
-        fprintf(file, ")\n{\n\tDbgPrint(\"WARNING: calling stub %.*s(",
+        fprintf(file, ")\n{\n\tDbgPrint(\"%%s:%%d:WARNING: calling stub %.*s(",
                 pexp->strName.len, pexp->strName.buf);
     }
     else
@@ -376,6 +376,8 @@ OutputLine_stub(FILE *file, EXPORT *pexp)
         }
     }
     fprintf(file, ")\\n\"");
+
+    fprintf(file, ", __FILE__, __LINE__");
 
     for (i = 0; i < pexp->nArgCount; i++)
     {
