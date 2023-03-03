@@ -4960,6 +4960,61 @@ K32GetProcessImageFileNameA(HANDLE hProcess,
     return Len;
 }
 
+
+/*
+ * @implemented
+ */
+BOOL
+WINAPI
+K32QueryWorkingSet(HANDLE hProcess,
+                PVOID pv,
+                DWORD cb)
+{
+    NTSTATUS Status;
+
+    /* Simply forward the call */
+    Status = NtQueryVirtualMemory(hProcess,
+                                  NULL,
+                                  MemoryWorkingSetList,
+                                  pv,
+                                  cb,
+                                  NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        SetLastError(RtlNtStatusToDosError(Status));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/*
+ * @implemented
+ */
+BOOL
+WINAPI
+K32QueryWorkingSetEx(IN HANDLE hProcess,
+                  IN OUT PVOID pv,
+                  IN DWORD cb)
+{
+    NTSTATUS Status;
+
+    /* Simply forward the call */
+    Status = NtQueryVirtualMemory(hProcess,
+                                  NULL,
+                                  MemoryWorkingSetExList,
+                                  pv,
+                                  cb,
+                                  NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        SetLastError(RtlNtStatusToDosError(Status));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 typedef struct _PROCESS_MEMORY_COUNTERS {
   DWORD  cb;
   DWORD  PageFaultCount;

@@ -1289,6 +1289,8 @@
 @ stdcall -version=0x600+ K32GetProcessImageFileNameA(ptr ptr long)
 @ stdcall -version=0x600+ K32GetProcessImageFileNameW(ptr ptr long)
 @ stdcall -version=0x600+ K32GetProcessMemoryInfo(ptr ptr long)
+@ stdcall -version=0x600+ K32QueryWorkingSet(ptr ptr long)
+@ stdcall -version=0x600+ K32QueryWorkingSetEx(ptr ptr long)
 @ stdcall -version=0x600+ PowerClearRequest(long long)
 @ stdcall -version=0x600+ PowerCreateRequest(ptr)
 @ stdcall -version=0x600+ PowerSetRequest(long long)
