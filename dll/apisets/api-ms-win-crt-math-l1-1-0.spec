@@ -103,17 +103,17 @@
 @ stub _ldsin
 @ stub _ldtest
 @ stub _ldunscale
-@ stub _libm_sse2_acos_precise
-@ stub _libm_sse2_asin_precise
-@ stub _libm_sse2_atan_precise
-@ stub _libm_sse2_cos_precise
-@ stub _libm_sse2_exp_precise
-@ stub _libm_sse2_log10_precise
-@ stub _libm_sse2_log_precise
-@ stub _libm_sse2_pow_precise
-@ stub _libm_sse2_sin_precise
-@ stub _libm_sse2_sqrt_precise
-@ stub _libm_sse2_tan_precise
+@ cdecl -arch=i386 -norelay _libm_sse2_acos_precise() msvcrt.__libm_sse2_acos
+@ cdecl -arch=i386 -norelay _libm_sse2_asin_precise() msvcrt.__libm_sse2_asin
+@ cdecl -arch=i386 -norelay _libm_sse2_atan_precise() msvcrt.__libm_sse2_atan
+@ cdecl -arch=i386 -norelay _libm_sse2_cos_precise() msvcrt.__libm_sse2_cos
+@ cdecl -arch=i386 -norelay _libm_sse2_exp_precise() msvcrt.__libm_sse2_exp
+@ cdecl -arch=i386 -norelay _libm_sse2_log10_precise() msvcrt.__libm_sse2_log10
+@ cdecl -arch=i386 -norelay _libm_sse2_log_precise() msvcrt.__libm_sse2_log
+@ cdecl -arch=i386 -norelay _libm_sse2_pow_precise() msvcrt.__libm_sse2_pow
+@ cdecl -arch=i386 -norelay _libm_sse2_sin_precise() msvcrt.__libm_sse2_sin
+@ cdecl -arch=i386 -norelay _libm_sse2_sqrt_precise() msvcrt.__libm_sse2_sqrt_precise
+@ cdecl -arch=i386 -norelay _libm_sse2_tan_precise() msvcrt.__libm_sse2_tan
 @ stdcall _logb() msvcrt._logb
 @ stub _logbf
 @ stdcall _nextafter() msvcrt._nextafter
