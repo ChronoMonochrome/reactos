@@ -150,6 +150,7 @@
 @ stdcall strpbrk() msvcrt.strpbrk
 @ stdcall strspn() msvcrt.strspn
 @ stdcall strtok() msvcrt.strtok
+@ stdcall -version=0x600+ strnlen(str long) msvcrt.strnlen
 @ cdecl -version=0x600+ strtok_s(str str ptr) msvcrt.strtok_s
 @ stdcall strxfrm() msvcrt.strxfrm
 @ stdcall tolower() msvcrt.tolower
