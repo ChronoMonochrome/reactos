@@ -1616,3 +1616,4 @@
 @ cdecl -arch=i386 __libm_sse2_sinf()
 @ cdecl -arch=i386 __libm_sse2_tan()
 @ cdecl -arch=i386 __libm_sse2_tanf()
+@ cdecl -arch=i386 __libm_sse2_sqrt_precise()
