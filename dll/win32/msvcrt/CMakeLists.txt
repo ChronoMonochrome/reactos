@@ -27,6 +27,7 @@ list(APPEND SOURCE
     framehandler.c
     cpprt.s
     dllmain.c
+    math.c
     stubs.c
     msvcrt.rc
     ${CMAKE_CURRENT_BINARY_DIR}/msvcrt_stubs.c

@@ -1491,4 +1491,16 @@ typedef struct {
 #define __wine_jmp_buf _JBTYPE
 #endif
 
+#ifndef _MSVCRT_LONG_DEFINED
+#define _MSVCRT_LONG_DEFINED
+/* we need 32-bit longs even on 64-bit */
+#ifdef __LP64__
+typedef int __msvcrt_long;
+typedef unsigned int __msvcrt_ulong;
+#else
+typedef long __msvcrt_long;
+typedef unsigned long __msvcrt_ulong;
+#endif
+#endif
+
 #endif /* __WINE_MSVCRT_H */

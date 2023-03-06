@@ -283,27 +283,27 @@
 @ extern -arch=i386,x86_64 __lc_collate_cp MSVCRT___lc_collate_cp
 @ extern __lc_handle MSVCRT___lc_handle
 @ cdecl __lconv_init()
-@ stub -version=0x600+ -arch=i386 __libm_sse2_acos
-@ stub -version=0x600+ -arch=i386 __libm_sse2_acosf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_asin
-@ stub -version=0x600+ -arch=i386 __libm_sse2_asinf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_atan
-@ stub -version=0x600+ -arch=i386 __libm_sse2_atan2
-@ stub -version=0x600+ -arch=i386 __libm_sse2_atanf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_cos
-@ stub -version=0x600+ -arch=i386 __libm_sse2_cosf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_exp
-@ stub -version=0x600+ -arch=i386 __libm_sse2_expf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_log
-@ stub -version=0x600+ -arch=i386 __libm_sse2_log10
-@ stub -version=0x600+ -arch=i386 __libm_sse2_log10f
-@ stub -version=0x600+ -arch=i386 __libm_sse2_logf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_pow
-@ stub -version=0x600+ -arch=i386 __libm_sse2_powf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_sin
-@ stub -version=0x600+ -arch=i386 __libm_sse2_sinf
-@ stub -version=0x600+ -arch=i386 __libm_sse2_tan
-@ stub -version=0x600+ -arch=i386 __libm_sse2_tanf
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_acos()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_acosf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_asin()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_asinf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_atan()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_atan2()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_atanf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_cos()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_cosf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_exp()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_expf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_log()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_log10()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_log10f()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_logf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_pow()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_powf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_sin()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_sinf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_tan()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_tanf()
 @ extern __mb_cur_max
 @ cdecl -arch=i386 __p___argc()
 @ cdecl -arch=i386 __p___argv()
@@ -564,7 +564,7 @@
 @ stub -version=0x600+ _fwscanf_l
 @ stub -version=0x600+ _fwscanf_s_l
 @ cdecl _gcvt(double long str)
-@ stub -version=0x600+ _gcvt_s
+@ cdecl -version=0x600+ _gcvt_s(str long double long)
 @ cdecl -version=0x600+ _get_doserrno(ptr)
 @ stub -version=0x600+ _get_environ
 @ cdecl -version=0x600+ _get_errno(ptr)
@@ -615,7 +615,7 @@
 @ cdecl -arch=x86_64 -version=0x502 _heapused(ptr ptr)
 @ cdecl _heapwalk(ptr)
 @ cdecl _hypot(double double)
-@ cdecl -stub _hypotf(float float)
+@ cdecl _hypotf(float float)
 @ cdecl _i64toa(long long ptr long)
 @ cdecl -version=0x600+ _i64toa_s(int64 ptr long long)
 @ cdecl _i64tow(long long ptr long)
@@ -968,8 +968,8 @@
 @ stub -version=0x600+ -arch=i386 _seh_longjmp_unwind4
 @ stdcall -arch=i386 _seh_longjmp_unwind(ptr)
 @ cdecl -arch=i386 -version=0x600+ _seh_filter_dll(long ptr)
-@ stub -arch=i386 _set_SSE2_enable
-@ stub -version=0x600+ _set_controlfp
+@ cdecl -arch=i386 _set_SSE2_enable(long)
+@ cdecl -version=0x600+ _set_controlfp(long long)
 @ cdecl -version=0x600+ _set_doserrno(long)
 @ cdecl -version=0x600+ _set_errno(long)
 @ cdecl _set_error_mode(long)
@@ -1594,3 +1594,25 @@
 @ varargs wscanf(wstr)
 @ stub -version=0x600+ wscanf_s
 @ cdecl -version=0x600+ RoGetActivationFactory(ptr long ptr) MSVCRT_RoGetActivationFactory
+
+@ cdecl -arch=i386 __libm_sse2_acos()
+@ cdecl -arch=i386 __libm_sse2_acosf()
+@ cdecl -arch=i386 __libm_sse2_asin()
+@ cdecl -arch=i386 __libm_sse2_asinf()
+@ cdecl -arch=i386 __libm_sse2_atan()
+@ cdecl -arch=i386 __libm_sse2_atan2()
+@ cdecl -arch=i386 __libm_sse2_atanf()
+@ cdecl -arch=i386 __libm_sse2_cos()
+@ cdecl -arch=i386 __libm_sse2_cosf()
+@ cdecl -arch=i386 __libm_sse2_exp()
+@ cdecl -arch=i386 __libm_sse2_expf()
+@ cdecl -arch=i386 __libm_sse2_log()
+@ cdecl -arch=i386 __libm_sse2_log10()
+@ cdecl -arch=i386 __libm_sse2_log10f()
+@ cdecl -arch=i386 __libm_sse2_logf()
+@ cdecl -arch=i386 __libm_sse2_pow()
+@ cdecl -arch=i386 __libm_sse2_powf()
+@ cdecl -arch=i386 __libm_sse2_sin()
+@ cdecl -arch=i386 __libm_sse2_sinf()
+@ cdecl -arch=i386 __libm_sse2_tan()
+@ cdecl -arch=i386 __libm_sse2_tanf()

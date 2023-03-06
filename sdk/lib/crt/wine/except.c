@@ -39,11 +39,16 @@
 
 #include "cppexcept.h"
 
+#ifdef _MSVCR_VER
+#undef _MSVCR_VER
+#define _MSVCR_VER 140
+#endif
+
 WINE_DEFAULT_DEBUG_CHANNEL(seh);
 
-#if _MSVCR_VER>=70 && _MSVCR_VER<=71
+//#if _MSVCR_VER>=70 && _MSVCR_VER<=71
 static MSVCRT_security_error_handler security_error_handler;
-#endif
+//#endif
 
 static MSVCRT___sighandler_t sighandlers[MSVCRT_NSIG] = { MSVCRT_SIG_DFL };
 
@@ -297,7 +302,7 @@ BOOL CDECL MSVCRT___uncaught_exception(void)
     return msvcrt_get_thread_data()->processing_throw != 0;
 }
 
-#if _MSVCR_VER>=70 && _MSVCR_VER<=71
+//#if _MSVCR_VER>=70 && _MSVCR_VER<=71
 
 /*********************************************************************
  *		_set_security_error_handler (MSVCR70.@)
@@ -326,7 +331,7 @@ void CDECL __security_error_handler(int code, void *data)
     MSVCRT__exit(3);
 }
 
-#endif /* _MSVCR_VER>=70 && _MSVCR_VER<=71 */
+//#endif /* _MSVCR_VER>=70 && _MSVCR_VER<=71 */
 
 #if _MSVCR_VER>=110
 /*********************************************************************

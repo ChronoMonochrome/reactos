@@ -36,6 +36,7 @@ void __thiscall MSVCRT_type_info_dtor(type_info * _this);
 const char * __thiscall MSVCRT_type_info_name(type_info * _this);
 const char * __thiscall MSVCRT_type_info_raw_name(type_info * _this);
 void * __thiscall MSVCRT_type_info_vector_dtor(type_info * _this, unsigned int flags);
+#if 0
 #if _MSVCR_VER >= 80
 bad_alloc* __thiscall MSVCRT_bad_alloc_copy_ctor(bad_alloc* _this, const bad_alloc* rhs);
 bad_alloc* __thiscall MSVCRT_bad_alloc_copy_ctor(bad_alloc* _this, const bad_alloc* rhs);
@@ -98,3 +99,4 @@ improper_scheduler_detach* __thiscall MSVCRT_improper_scheduler_detach_copy_ctor
 void __thiscall MSVCRT_improper_scheduler_detach_dtor(
     improper_scheduler_detach* _this);
 #endif
+#endif /* 0 */

@@ -33,6 +33,11 @@
 #include "mtdll.h"
 #include "cxx.h"
 
+#ifdef _MSVCR_VER
+#undef _MSVCR_VER
+#define _MSVCR_VER 40
+#endif
+
 WINE_DEFAULT_DEBUG_CHANNEL(msvcrt);
 
 struct __type_info_node
@@ -653,6 +658,7 @@ void * __thiscall MSVCRT_type_info_vector_dtor(type_info * _this, unsigned int f
     return _this;
 }
 
+#if 0
 #if _MSVCR_VER >= 80
 
 typedef exception bad_alloc;
@@ -994,6 +1000,7 @@ void __thiscall MSVCRT_improper_scheduler_detach_dtor(
 }
 
 #endif /* _MSVCR_VER >= 100 */
+#endif /* 0 */
 
 #ifndef _MSC_VER
 #ifndef __GNUC__

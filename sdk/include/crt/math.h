@@ -70,6 +70,77 @@ typedef double double_t;
 #define FP_SUBNORMAL _DENORM
 #define FP_ZERO      0
 
+#if _MSVCR_VER >= 120
+
+_CRTIMP short __cdecl _dclass(double);
+_CRTIMP short __cdecl _fdclass(float);
+_CRTIMP int   __cdecl _dsign(double);
+_CRTIMP int   __cdecl _fdsign(float);
+
+#define fpclassify(x) (sizeof(x) == sizeof(float) ? _fdclass(x) : _dclass(x))
+#define signbit(x)    (sizeof(x) == sizeof(float) ? _fdsign(x) : _dsign(x))
+#define isinf(x)      (fpclassify(x) == FP_INFINITE)
+#define isnan(x)      (fpclassify(x) == FP_NAN)
+#define isnormal(x)   (fpclassify(x) == FP_NORMAL)
+#define isfinite(x)   (fpclassify(x) <= 0)
+
+#else
+
+static inline int __isnanf(float x)
+{
+    union { float x; unsigned int i; } u = { x };
+    return (u.i & 0x7fffffff) > 0x7f800000;
+}
+static inline int __isnan(double x)
+{
+    union { double x; unsigned __int64 i; } u = { x };
+    return (u.i & ~0ull >> 1) > 0x7ffull << 52;
+}
+static inline int __isinff(float x)
+{
+    union { float x; unsigned int i; } u = { x };
+    return (u.i & 0x7fffffff) == 0x7f800000;
+}
+static inline int __isinf(double x)
+{
+    union { double x; unsigned __int64 i; } u = { x };
+    return (u.i & ~0ull >> 1) == 0x7ffull << 52;
+}
+static inline int __isnormalf(float x)
+{
+    union { float x; unsigned int i; } u = { x };
+    return ((u.i + 0x00800000) & 0x7fffffff) >= 0x01000000;
+}
+static inline int __isnormal(double x)
+{
+    union { double x; unsigned __int64 i; } u = { x };
+    return ((u.i + (1ull << 52)) & ~0ull >> 1) >= 1ull << 53;
+}
+static inline int __signbitf(float x)
+{
+    union { float x; unsigned int i; } u = { x };
+    return (int)(u.i >> 31);
+}
+static inline int __signbit(double x)
+{
+    union { double x; unsigned __int64 i; } u = { x };
+    return (int)(u.i >> 63);
+}
+
+#define isinf(x)    (sizeof(x) == sizeof(float) ? __isinff(x) : __isinf(x))
+#define isnan(x)    (sizeof(x) == sizeof(float) ? __isnanf(x) : __isnan(x))
+#define isnormal(x) (sizeof(x) == sizeof(float) ? __isnormalf(x) : __isnormal(x))
+#define signbit(x)  (sizeof(x) == sizeof(float) ? __signbitf(x) : __signbit(x))
+#define isfinite(x) (!isinf(x) && !isnan(x))
+
+#endif
+
+#define FP_ILOGB0 ((int)0x80000000)
+#define FP_ILOGBNAN ((int)0x80000000)
+  extern int __cdecl ilogb (double);
+  extern int __cdecl ilogbf (float);
+  extern int __cdecl ilogbl (long double);
+
 #ifndef __cplusplus
 #define _matherrl _matherr
 #endif
