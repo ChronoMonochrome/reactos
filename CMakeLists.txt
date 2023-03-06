@@ -68,6 +68,8 @@ include(sdk/cmake/config.cmake)
 # Compiler flags handling
 include(sdk/cmake/compilerflags.cmake)
 
+#    -D_MSVCR_VER=140
+
 add_definitions(
     -D__REACTOS__
     # swprintf without count argument is used in most of the codebase

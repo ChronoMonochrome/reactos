@@ -44,7 +44,6 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(seh);
 
-
 /* the exception frame used by CxxFrameHandler */
 typedef struct __cxx_exception_frame
 {

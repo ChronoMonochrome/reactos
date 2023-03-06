@@ -176,8 +176,10 @@ void* CDECL DECLSPEC_HOTPATCH MSVCRT_operator_new(MSVCRT_size_t size)
   } while(freed);
 
   TRACE("(%ld) out of memory\n", size);
+#if 0
 #if _MSVCR_VER >= 80
   throw_exception(EXCEPTION_BAD_ALLOC, 0, "bad allocation");
+#endif
 #endif
   return NULL;
 }
@@ -415,24 +417,6 @@ MSVCRT_size_t CDECL _msize(void* mem)
   return size;
 }
 
-#if _MSVCR_VER>=80
-/*********************************************************************
- * _aligned_msize (MSVCR80.@)
- */
-size_t CDECL _aligned_msize(void *p, MSVCRT_size_t alignment, MSVCRT_size_t offset)
-{
-    void **alloc_ptr;
-
-    if(!MSVCRT_CHECK_PMT(p)) return -1;
-
-    if(alignment < sizeof(void*))
-        alignment = sizeof(void*);
-
-    alloc_ptr = SAVED_PTR(p);
-    return _msize(*alloc_ptr)-alignment-sizeof(void*);
-}
-#endif
-
 /*********************************************************************
  *		calloc (MSVCRT.@)
  */
@@ -457,7 +441,7 @@ void* CDECL _calloc_base(MSVCRT_size_t count, MSVCRT_size_t size)
 {
   return MSVCRT_calloc(count, size);
 }
-#endif
+#else
 
 /*********************************************************************
  *		_calloc_base (MSVCRT.@)
@@ -466,6 +450,7 @@ void* CDECL _calloc_base(size_t count, size_t size)
 {
   return calloc(count, size);
 }
+#endif
 
 /*********************************************************************
  *		free (MSVCRT.@)
@@ -483,8 +468,7 @@ void CDECL _free_base(void* ptr)
 {
   msvcrt_heap_free(ptr);
 }
-#endif
-
+#else
 /*********************************************************************
  *		_free_base (MSVCRT.@)
  */
@@ -493,6 +477,7 @@ void CDECL _free_base(void* ptr)
   if(ptr == NULL) return;
   HeapFree(GetProcessHeap(),0,ptr);
 }
+#endif
 
 /*********************************************************************
  *                  malloc (MSVCRT.@)
@@ -513,8 +498,7 @@ void* CDECL _malloc_base(MSVCRT_size_t size)
 {
   return MSVCRT_malloc(size);
 }
-#endif
-
+#else
 /*********************************************************************
  *                  _malloc_base (MSVCRT.@)
  */
@@ -522,6 +506,7 @@ void* CDECL _malloc_base(size_t size)
 {
   return malloc(size);
 }
+#endif
 
 /*********************************************************************
  *		realloc (MSVCRT.@)
@@ -541,6 +526,14 @@ void* CDECL DECLSPEC_HOTPATCH MSVCRT_realloc(void* ptr, MSVCRT_size_t size)
 void* CDECL _realloc_base(void* ptr, MSVCRT_size_t size)
 {
   return MSVCRT_realloc(ptr, size);
+}
+#else
+/*********************************************************************
+ *		_realloc_base (MSVCRT.@)
+ */
+void* CDECL _realloc_base(void* ptr, size_t size)
+{
+  return realloc(ptr, size);
 }
 #endif
 
@@ -569,16 +562,7 @@ void* CDECL _recalloc(void *mem, MSVCRT_size_t num, MSVCRT_size_t size)
         memset((BYTE*)ret+old_size, 0, size-old_size);
     return ret;
 }
-#endif
-
-/*********************************************************************
- *		_realloc_base (MSVCRT.@)
- */
-void* CDECL _realloc_base(void* ptr, size_t size)
-{
-  return realloc(ptr, size);
-}
-
+#else
 /*********************************************************************
  * _recalloc (MSVCRT.@)
  */
@@ -603,6 +587,7 @@ void* CDECL _recalloc(void *mem, size_t num, size_t size)
         memset((BYTE*)ret+old_size, 0, size-old_size);
     return ret;
 }
+#endif
 
 /*********************************************************************
  *		__p__amblksiz (MSVCRT.@)
