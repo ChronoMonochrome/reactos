@@ -1593,3 +1593,4 @@
 @ stub -version=0x600+ wprintf_s
 @ varargs wscanf(wstr)
 @ stub -version=0x600+ wscanf_s
+@ cdecl -version=0x600+ RoGetActivationFactory(ptr long ptr) MSVCRT_RoGetActivationFactory

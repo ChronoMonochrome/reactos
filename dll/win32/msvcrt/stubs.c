@@ -924,5 +924,12 @@ vsnprintf(
     return 0;
 }
 
-
-
+int CDECL MSVCRT_RoGetActivationFactory(
+  void * activatableClassId,
+  int  iid,
+  void **factory
+)
+{
+    UNIMPLEMENTED;
+    return 0;
+}
