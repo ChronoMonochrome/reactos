@@ -30,6 +30,7 @@
 @ stdcall BaseDumpAppcompatCache()
 @ stdcall BaseFlushAppcompatCache()
 @ stub -version=0x600+ BaseGenerateAppCompatData
+@ stdcall -version=0x601+ BaseGetNamedObjectDirectory(ptr)
 @ stdcall BaseInitAppcompatCacheSupport()
 @ stdcall BaseIsAppcompatInfrastructureDisabled() IsShimInfrastructureDisabled
 @ stdcall -version=0x501-0x502 BaseProcessInitPostImport()
@@ -118,8 +119,8 @@
 @ stdcall -stub -version=0x600+ CreateDirectoryTransactedW(wstr wstr ptr ptr)
 @ stdcall CreateDirectoryW(wstr ptr)
 @ stdcall CreateEventA(ptr long long str)
-;@ stdcall -stub -version=0x600+ CreateEventExA(ptr str long long)
-;@ stdcall -stub -version=0x600+ CreateEventExW(ptr wstr long long)
+@ stdcall -version=0x600+ CreateEventExA(ptr str long long)
+@ stdcall -version=0x600+ CreateEventExW(ptr wstr long long)
 @ stdcall CreateEventW(ptr long long wstr)
 @ stdcall CreateFiber(long ptr ptr)
 @ stdcall CreateFiberEx(long long long ptr ptr)
@@ -143,8 +144,8 @@
 @ stdcall CreateMailslotW(ptr long long ptr)
 @ stdcall CreateMemoryResourceNotification(long)
 @ stdcall CreateMutexA(ptr long str)
-@ stdcall -stub -version=0x600+ CreateMutexExA(ptr str long long)
-@ stdcall -stub -version=0x600+ CreateMutexExW(ptr wstr long long)
+@ stdcall -version=0x600+ CreateMutexExA(ptr str long long)
+@ stdcall -version=0x600+ CreateMutexExW(ptr wstr long long)
 @ stdcall CreateMutexW(ptr long wstr)
 @ stdcall CreateNamedPipeA(str long long long long long long ptr)
 @ stdcall CreateNamedPipeW(wstr long long long long long long ptr)
@@ -433,7 +434,8 @@
 @ stdcall -version=0x602+ GetCurrentPackageId(ptr ptr)
 @ stdcall -norelay GetCurrentProcess()
 @ stdcall -norelay GetCurrentProcessId()
-@ stdcall GetCurrentProcessorNumber() ntdll.RtlGetCurrentProcessorNumber
+;@ stdcall GetCurrentProcessorNumber() ntdll.RtlGetCurrentProcessorNumber
+;@ stdcall -version=0x601+ GetCurrentProcessorNumberEx(ptr) ntdll.RtlGetCurrentProcessorNumberEx
 @ stdcall -norelay GetCurrentThread()
 @ stdcall -norelay GetCurrentThreadId()
 @ stdcall GetDateFormatA(long long ptr str ptr long)
@@ -589,7 +591,7 @@
 @ stdcall GetStringTypeExA(long long str long ptr)
 @ stdcall GetStringTypeExW(long long wstr long ptr)
 @ stdcall GetStringTypeW(long wstr long ptr)
-@ stdcall GetSystemDEPPolicy()
+@ stdcall -version=0x600+ GetSystemDEPPolicy()
 @ stdcall GetSystemDefaultLCID()
 @ stdcall GetSystemDefaultLangID()
 @ stdcall -version=0x600+ GetSystemDefaultLocaleName(wstr long)
@@ -773,14 +775,15 @@
 @ stdcall LZStart()
 @ stdcall LeaveCriticalSection(ptr) ntdll.RtlLeaveCriticalSection
 @ stdcall -stub -version=0x600+ LeaveCriticalSectionWhenCallbackReturns(ptr ptr)
+@ stdcall -stub -version=0x601+ LoadAppInitDlls()
 @ stdcall LoadLibraryA(str)
 @ stdcall LoadLibraryExA(str long long)
 @ stdcall LoadLibraryExW(wstr long long)
 @ stdcall LoadLibraryW(wstr)
 @ stdcall LoadModule(str ptr)
 @ stdcall LoadResource(long long)
-@ stub -version=0x600+ LoadStringBaseExW
-@ stub -version=0x600+ LoadStringBaseW
+@ stdcall -stub -version=0x600+ LoadStringBaseExW()
+@ stdcall -stub -version=0x600+ LoadStringBaseW()
 @ stdcall LocalAlloc(long long)
 @ stdcall LocalCompact(long)
 @ stdcall LocalFileTimeToFileTime(ptr ptr)
@@ -935,6 +938,7 @@
 @ stdcall RequestWakeupLatency(long)
 @ stdcall ResetEvent(long)
 @ stdcall ResetWriteWatch(ptr long)
+@ stdcall -stub -version=0x600+ ResolveDelayLoadedAPI(ptr ptr ptr ptr ptr long)
 @ stdcall RestoreLastError(long) ntdll.RtlRestoreLastWin32Error
 @ stdcall ResumeThread(long)
 @ stdcall -version=0x600+ ResolveLocaleName(wstr wstr long) kernel32_vista.ResolveLocaleName
@@ -1011,6 +1015,7 @@
 @ stdcall SetCurrentDirectoryW(wstr)
 @ stdcall SetDefaultCommConfigA(str ptr long)
 @ stdcall SetDefaultCommConfigW(wstr ptr long)
+@ stdcall -version=0x600+ SetDefaultDllDirectories(long)
 @ stdcall SetDllDirectoryA(str)
 @ stdcall SetDllDirectoryW(wstr)
 @ stdcall -stub -version=0x600+ SetDynamicTimeZoneInformation(ptr)
@@ -1058,12 +1063,12 @@
 @ stdcall SetPriorityClass(long long)
 @ stdcall SetProcessAffinityMask(long long)
 @ stdcall -stub -version=0x600+ SetProcessAffinityUpdateMode(ptr long)
-@ stdcall SetProcessDEPPolicy(long)
+@ stdcall -version=0x600+ SetProcessDEPPolicy(long)
 @ stdcall SetProcessPriorityBoost(long long)
 @ stdcall SetProcessShutdownParameters(long long)
 @ stdcall SetProcessWorkingSetSize(long long long)
 @ stdcall SetProcessWorkingSetSizeEx(long long long long)
-@ stdcall SetSearchPathMode(long)
+@ stdcall  -version=0x601+ SetSearchPathMode(long)
 @ stdcall SetStdHandle(long long)
 @ stub -version=0x600+ SetStdHandleEx
 @ stdcall SetSystemFileCacheSize(long long long)
@@ -1076,7 +1081,7 @@
 @ stdcall SetThreadAffinityMask(long long)
 @ stdcall -stub SetThreadGroupAffinity(long long long)
 @ stdcall SetThreadContext(long ptr)
-@ stub -version=0x600+ SetThreadErrorMode
+@ stdcall -stub -version=0x601+ SetThreadErrorMode(long long)
 @ stdcall SetThreadExecutionState(long)
 @ stdcall SetThreadIdealProcessor(long long)
 @ stdcall -stub SetThreadIdealProcessorEx(ptr ptr ptr)
@@ -1101,6 +1106,7 @@
 @ stdcall SetVolumeMountPointA(str str)
 @ stdcall SetVolumeMountPointW(wstr wstr)
 @ stdcall SetWaitableTimer(long ptr long ptr ptr long)
+@ stdcall -version=0x601+ SetWaitableTimerEx(long ptr long ptr ptr ptr long)
 @ stdcall SetupComm(long long long)
 @ stdcall ShowConsoleCursor(long long)
 @ stdcall SignalObjectAndWait(long long long long)
@@ -1188,7 +1194,7 @@
 @ stdcall -version=0x600+ WakeConditionVariable(ptr) kernel32_vista.WakeConditionVariable
 @ stdcall -stub -version=0x600+ WerGetFlags(ptr ptr)
 @ stdcall -stub -version=0x600+ WerRegisterFile(wstr long long)
-@ stdcall -stub -version=0x600+ WerRegisterMemoryBlock(ptr long)
+;@ stdcall -version=0x600+ WerRegisterMemoryBlock(ptr long)
 @ stdcall -stub -version=0x600+ WerSetFlags(long)
 @ stdcall -stub -version=0x600+ WerUnregisterFile(wstr)
 @ stdcall -stub -version=0x600+ WerUnregisterMemoryBlock(ptr)
