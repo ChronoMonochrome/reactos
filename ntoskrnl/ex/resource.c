@@ -2283,3 +2283,40 @@ ExReleaseResourceAndLeaveCriticalRegion(IN PERESOURCE Resource)
     /* Leave critical region */
     KeLeaveCriticalRegion();
 }
+
+PVOID
+NTAPI
+ExEnterPriorityRegionAndAcquireResourceExclusive(IN PERESOURCE Resource)
+{
+    KeEnterCriticalRegion();
+
+    PsEnterPriorityRegion();
+
+    ExAcquireResourceExclusiveLite(Resource, TRUE);
+
+    return KeGetCurrentThread()->Win32Thread;
+}
+
+PVOID
+NTAPI
+ExEnterPriorityRegionAndAcquireResourceShared(IN PERESOURCE Resource)
+{
+    KeEnterCriticalRegion();
+
+    PsEnterPriorityRegion();
+
+    ExAcquireResourceSharedLite(Resource, TRUE);
+
+    return KeGetCurrentThread()->Win32Thread;
+}
+
+VOID
+FASTCALL
+ExReleaseResourceAndLeavePriorityRegion(IN PERESOURCE Resource)
+{
+    ExReleaseResourceLite(Resource);
+
+    PsLeavePriorityRegion();
+
+    KeLeaveCriticalRegion();
+}
