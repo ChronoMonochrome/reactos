@@ -108,6 +108,16 @@ UserRealizePalette ( HDC hDC )
   return NtUserxRealizePalette(hDC);
 }
 
+/*
+ * @unimplemented
+ */
+BOOL
+WINAPI
+LogicalToPhysicalPoint( HWND hWnd, LPPOINT lpPoint )
+{
+    UNIMPLEMENTED;
+    return TRUE;
+}
 
 /*************************************************************************
  *		SetSysColorsTemp (USER32.@) (Wine 10/22/2008)
