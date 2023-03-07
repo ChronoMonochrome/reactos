@@ -20,7 +20,7 @@
 @ stub __stdio_common_vsscanf
 @ cdecl -version=0x600+ __stdio_common_vswprintf(int64 ptr long wstr ptr ptr) msvcrt.__stdio_common_vswprintf
 @ stub __stdio_common_vswprintf_p
-@ stub __stdio_common_vswprintf_s
+@ cdecl -version=0x600+ __stdio_common_vswprintf_s(int64 wstr long wstr ptr ptr) msvcrt.__stdio_common_vswprintf_s
 @ stub __stdio_common_vswscanf
 @ stdcall _chsize() msvcrt._chsize
 @ cdecl -version=0x600+ _chsize_s(long int64) msvcrt._chsize_s
