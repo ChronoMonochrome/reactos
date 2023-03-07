@@ -1185,3 +1185,11 @@ LRESULT WINAPI SendNotifyEx (HWND hwndTo, HWND hwndFrom, UINT uCode,
 
     return DoNotify (&notify, uCode, lpHdr);
 }
+
+
+VOID
+WINAPI
+PremultiplyAlphaChannel()
+{
+    UNIMPLEMENTED;
+}
