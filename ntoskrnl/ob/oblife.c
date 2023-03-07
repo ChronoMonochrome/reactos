@@ -1874,4 +1874,12 @@ NtSetInformationObject(IN HANDLE ObjectHandle,
     return Status;
 }
 
+POBJECT_TYPE
+NTAPI
+ObGetObjectType(IN PVOID Object)
+{
+    UNIMPLEMENTED;
+    return NULL;
+}
+
 /* EOF */
