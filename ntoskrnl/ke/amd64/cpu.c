@@ -463,6 +463,36 @@ KeQueryActiveProcessors(VOID)
     return KeActiveProcessors;
 }
 
+/*
+ * @implemented
+ */
+KAFFINITY
+NTAPI
+KeQueryActiveProcessorCount(PKAFFINITY ActiveProcessors)
+{
+    PAGED_CODE();
+
+    if (ActiveProcessors) {
+        /* FIXME: actually check ActiveProcessors parameter */
+    }
+    return KeActiveProcessors;
+}
+
+/*
+ * @implemented
+ */
+KAFFINITY
+NTAPI
+KeQueryActiveProcessorCountEx(USHORT GroupNumber)
+{
+    PAGED_CODE();
+
+    if (GroupNumber == ALL_PROCESSOR_GROUPS) {
+        /* FIXME: actually check GroupNumber parameter */
+    }
+    return KeActiveProcessors;
+}
+
 NTSTATUS
 NTAPI
 KxSaveFloatingPointState(OUT PKFLOATING_SAVE FloatingState)

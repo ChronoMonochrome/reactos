@@ -650,8 +650,8 @@
 @ stdcall -arch=i386,arm KeProfileInterrupt(ptr)
 @ stdcall KeProfileInterruptWithSource(ptr long)
 @ stdcall KePulseEvent(ptr long long)
-@ stdcall -stub -version=0x600+ KeQueryActiveProcessorCount(long)
-@ stdcall -stub -version=0x600+ KeQueryActiveProcessorCountEx(long)
+@ stdcall -arch=i386,amd64,arm -version=0x600+ KeQueryActiveProcessorCount(long)
+@ stdcall -arch=i386,amd64,arm -version=0x600+ KeQueryActiveProcessorCountEx(long)
 @ stdcall KeQueryActiveProcessors()
 @ stdcall -arch=i386,arm KeQueryInterruptTime()
 ;@ cdecl -arch=x86_64 KeQueryMultiThreadProcessorSet
