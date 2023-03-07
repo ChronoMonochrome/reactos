@@ -698,7 +698,7 @@
 @ stdcall KeRevertToUserAffinityThread()
 @ stdcall KeRundownQueue(ptr)
 @ stdcall -arch=i386 KeSaveFloatingPointState(ptr)
-@ stdcall -arch=x86_64 KeSaveFloatingPointState(ptr) KxSaveFloatingPointState
+;@ stdcall -arch=x86_64 KeSaveFloatingPointState(ptr) KxSaveFloatingPointState
 @ cdecl KeSaveStateForHibernate(ptr)
 @ extern KeServiceDescriptorTable
 @ stdcall KeSetAffinityThread(ptr long)
