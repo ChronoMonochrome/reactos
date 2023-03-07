@@ -75,7 +75,7 @@
 @ cdecl -version=0x600+ _set_doserrno(long) msvcrt._set_doserrno
 @ cdecl -version=0x600+ _set_errno(long) msvcrt._set_errno
 @ stdcall _set_error_mode() msvcrt._set_error_mode
-@ stub _set_invalid_parameter_handler
+@ cdecl _set_invalid_parameter_handler(ptr) msvcrt._set_invalid_parameter_handler
 @ stub _set_new_handler
 @ stub _set_thread_local_invalid_parameter_handler
 @ stdcall _seterrormode() msvcrt._seterrormode
