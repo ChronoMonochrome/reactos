@@ -28,6 +28,7 @@ list(APPEND SOURCE
     cpprt.s
     dllmain.c
     math.c
+    wcs.c
     stubs.c
     msvcrt.rc
     ${CMAKE_CURRENT_BINARY_DIR}/msvcrt_stubs.c

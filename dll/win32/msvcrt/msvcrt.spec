@@ -342,11 +342,12 @@
 @ extern -arch=i386,x86_64 __setlc_active
 @ cdecl __setusermatherr(ptr)
 @ stub -version=0x600+ __strncnt
-@ cdecl -stub -version=0x600+ __stdio_common_vfprintf(int64 ptr str ptr ptr)
-@ cdecl -stub -version=0x600+ __stdio_common_vsnprintf_s(int64 ptr long long str ptr ptr)
-@ cdecl -stub -version=0x600+ __stdio_common_vsnwprintf_s(int64 ptr long long wstr ptr ptr)
-@ cdecl -stub -norelay -version=0x600+ __stdio_common_vsprintf(int64 ptr long str ptr ptr)
-@ cdecl -stub -version=0x600+ __stdio_common_vswprintf(int64 ptr long wstr ptr ptr)
+@ cdecl -version=0x600+ __stdio_common_vfprintf(int64 ptr str ptr ptr)
+@ cdecl -version=0x600+ __stdio_common_vsnprintf_s(int64 ptr long long str ptr ptr)
+@ cdecl -version=0x600+ __stdio_common_vsnwprintf_s(int64 wstr long long wstr ptr ptr)
+@ cdecl -version=0x600+ __stdio_common_vswprintf_s(int64 wstr long wstr ptr ptr)
+@ cdecl -norelay -version=0x600+ __stdio_common_vsprintf(int64 ptr long str ptr ptr)
+@ cdecl -version=0x600+ __stdio_common_vswprintf(int64 ptr long wstr ptr ptr)
 @ cdecl __threadhandle() kernel32.GetCurrentThread
 @ cdecl __threadid() kernel32.GetCurrentThreadId
 @ cdecl __toascii(long)
