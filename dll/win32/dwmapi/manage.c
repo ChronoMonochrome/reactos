@@ -24,26 +24,7 @@ HRESULT
 WINAPI
 DwmIsCompositionEnabled(_Out_ BOOL *enabled)
 {
-    UINT32 CompositionStatus;
-
-    DPRINT("DwmIsCompositionEnabled Called, Parameteres: %p\n", enabled);
-    if (!enabled)
-    {
-        return E_INVALIDARG;
-    }
-
-    CompositionStatus = 0;
-    CompositionStatus = IsThreadDesktopComposited();
-
-    /* Cool if any value is returned that's not 0 let's just say composition */
-    if (CompositionStatus > 0)
-    {
-        enabled += 1;
-        return STATUS_SUCCESS;
-    }
-
-    RtlZeroMemory(enabled,sizeof(BOOL));
-    return STATUS_SUCCESS;
+    return E_FAIL;
 }
 
 /**********************************************************************
@@ -57,8 +38,8 @@ HRESULT
 WINAPI
 DwmEnableComposition(UINT uCompositionAction)
 {
-    UNIMPLEMENTED;
-    DPRINT("called, Parameters:(%d) stub\n", uCompositionAction);
+    //UNIMPLEMENTED;
+    //DPRINT("called, Parameters:(%d) stub\n", uCompositionAction);
 
-    return STATUS_SUCCESS;
+    return E_FAIL;
 }
