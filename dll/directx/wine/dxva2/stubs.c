@@ -1,17 +1,25 @@
 #define WIN32_NO_STATUS
 #define _INC_WINDOWS
 #define COM_NO_WINDOWS_H
-#include <precomp.h>
+#include <windef.h>
 
 #define NDEBUG
 #include <reactos/debug.h>
 
-
-HRESULT DXVA2CreateDirect3DDeviceManager9(
+__stdcall HRESULT DXVA2CreateDirect3DDeviceManager9(
   UINT                    *pResetToken,
   PVOID **ppDeviceManager
 )
 {
     UNIMPLEMENTED;
-    return 0xC0000001L;
+    return 0;
+}
+
+__stdcall HRESULT DXVA2CreateVideoService(
+  ULONG_PTR *pDD,
+  REFIID           riid,
+  void             **ppService
+)
+{
+  return 0;
 }
