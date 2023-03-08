@@ -764,6 +764,7 @@ ReturnCommonStatus:
         AccessStatusList[ResultListIndex] = Status;
     }
 
+#if 0
 #if DBG
     /* Dump security debug info on access denied case */
     if (Status == STATUS_ACCESS_DENIED)
@@ -772,6 +773,7 @@ ReturnCommonStatus:
         SepDumpTokenDebugInfo(Token);
         SepDumpAccessRightsStats(AccessCheckRights);
     }
+#endif
 #endif
 
     /* Free the allocated access check rights */
