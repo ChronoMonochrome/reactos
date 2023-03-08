@@ -1369,3 +1369,12 @@ SHQueryUserNotificationState(PVOID *pquns) // QUERY_USER_NOTIFICATION_STATE
     //*pquns = QUNS_ACCEPTS_NOTIFICATIONS;
     return S_OK;
 }
+
+/*************************************************************************
+ * SHGetPropertyStoreForWindow [SHELL32.@]
+ */
+EXTERN_C HRESULT
+WINAPI SHGetPropertyStoreForWindow(HWND hwnd, REFIID riid, void **ppv)
+{
+    return E_FAIL;
+}
