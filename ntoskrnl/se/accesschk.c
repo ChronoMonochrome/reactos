@@ -649,15 +649,12 @@ SepAccessCheck(
                                                        0);
         }
 
-        /* Fail if some rights have not been granted */
         RemainingAccess &= ~(MAXIMUM_ALLOWED | AccessCheckRights->GrantedAccessRights);
-        if (RemainingAccess != 0)
-        {
-            DPRINT1("SepAccessCheck(): Failed to grant access rights. RemainingAccess = 0x%08lx  DesiredAccess = 0x%08lx\n", RemainingAccess, DesiredAccess);
-            PreviouslyGrantedAccess = 0;
-            Status = STATUS_ACCESS_DENIED;
-            goto ReturnCommonStatus;
-        }
+
+        // HACK: if RemainingAccess != 0, grant access anyway
+        AccessCheckRights->GrantedAccessRights |= RemainingAccess;
+        RemainingAccess = 0;
+        AccessCheckRights->RemainingAccessRights = 0;
 
         /* Set granted access right and access status */
         PreviouslyGrantedAccess |= AccessCheckRights->GrantedAccessRights;
@@ -702,6 +699,10 @@ SepAccessCheck(
         goto ReturnCommonStatus;
     }
 
+    // HACK: if RemainingAccess != 0, grant access anyway
+    AccessCheckRights->GrantedAccessRights |= AccessCheckRights->RemainingAccessRights;
+    AccessCheckRights->RemainingAccessRights = 0;
+
     /* Fail if some rights have not been granted */
     if (AccessCheckRights->RemainingAccessRights != 0)
     {
@@ -728,6 +729,10 @@ SepAccessCheck(
                                                    ObjectTypeList,
                                                    ObjectTypeListLength,
                                                    RemainingAccess);
+
+        // HACK: if RemainingAccess != 0, grant access anyway
+        AccessCheckRights->GrantedAccessRights |= AccessCheckRights->RemainingAccessRights;
+        AccessCheckRights->RemainingAccessRights = 0;
 
         /* Fail if some rights have not been granted */
         if (AccessCheckRights->RemainingAccessRights != 0)
