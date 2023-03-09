@@ -321,31 +321,6 @@ void pdump_always(LPCITEMIDLIST pidl)
     pdump_impl(pidl);
 }
 
-
-static void dump_pidl_hex( LPCITEMIDLIST pidl )
-{
-    const unsigned char *p = (const unsigned char *)pidl;
-    const int max_bytes = 0x80;
-#define max_line 0x10
-    char szHex[max_line*3+1], szAscii[max_line+1];
-    int i, n;
-
-    n = pidl->mkid.cb;
-    if( n>max_bytes )
-        n = max_bytes;
-    for( i=0; i<n; i++ )
-    {
-        sprintf( &szHex[ (i%max_line)*3 ], "%02X ", p[i] );
-        szAscii[ (i%max_line) ] = isprint( p[i] ) ? p[i] : '.';
-
-        /* print out at the end of each line and when we're finished */
-        if( i!=(n-1) && (i%max_line) != (max_line-1) )
-            continue;
-        szAscii[ (i%max_line)+1 ] = 0;
-        ERR("%-*s   %s\n", max_line*3, szHex, szAscii );
-    }
-}
-
 BOOL pcheck( LPCITEMIDLIST pidl )
 {
     DWORD type;
@@ -381,9 +356,9 @@ BOOL pcheck( LPCITEMIDLIST pidl )
                 case PT_SHARE:
                     break;
                 default:
-                    ERR("unknown IDLIST %p [%p] size=%u type=%x\n",
+                    /*ERR("unknown IDLIST %p [%p] size=%u type=%x\n",
                         pidl, pidltemp, pidltemp->mkid.cb,type );
-                    dump_pidl_hex( pidltemp );
+                    dump_pidl_hex( pidltemp );*/
                     return FALSE;
             }
             pidltemp = _dbg_ILGetNext(pidltemp);
