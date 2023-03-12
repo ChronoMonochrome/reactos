@@ -13,6 +13,8 @@
  * PROGRAMMERS:     Alex Ionescu (alex.ionescu@reactos.org)
  */
 
+#define  TARGET_VERSION _WIN32_WINNT_WS03
+
 //
 // Windows NT Build 3790.3959
 //

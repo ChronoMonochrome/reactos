@@ -44,7 +44,9 @@
 #define MSVCRT_malloc malloc
 #define MSVCRT_realloc realloc
 #define MSVCRT_free free
+#ifndef __GNUC__
 #define MSVCRT_memcpy_s memcpy_s
+#endif
 #define MSVCRT_memmove_s memmove_s
 #define MSVCRT_strncpy_s strncpy_s
 #define msvcrt_set_errno _dosmaperr

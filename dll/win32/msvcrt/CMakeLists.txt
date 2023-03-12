@@ -24,6 +24,8 @@ add_definitions(
     -D__MINGW_IMPORT="")
 
 list(APPEND SOURCE
+    framehandler.c
+    cpprt.s
     dllmain.c
     stubs.c
     msvcrt.rc

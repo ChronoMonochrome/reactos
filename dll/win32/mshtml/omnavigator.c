@@ -20,7 +20,7 @@
 
 #ifdef __REACTOS__
 /* HACK This is a Vista+ API */
-static INT WINAPI LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD flags )
+INT WINAPI LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD flags )
 {
     if (flags) FIXME( "unsupported flags %x\n", flags );
 

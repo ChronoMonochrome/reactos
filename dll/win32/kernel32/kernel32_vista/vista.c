@@ -10,7 +10,7 @@
 #include <k32_vista.h>
 
 #if _WIN32_WINNT != _WIN32_WINNT_VISTA
-#error "This file must be compiled with _WIN32_WINNT == _WIN32_WINNT_VISTA"
+//#error "This file must be compiled with _WIN32_WINNT == _WIN32_WINNT_VISTA"
 #endif
 
 // This is defined only in ntifs.h
@@ -586,7 +586,6 @@ OpenFileById(IN HANDLE hFile,
 }
 
 
-
 /*
   Vista+ MUI support functions
 
@@ -631,6 +630,19 @@ GetFileMUIPath(
     DPRINT1("%x %p %p %p %p %p\n", dwFlags, pcwszFilePath, pwszLanguage, pwszFileMUIPath, pcchFileMUIPath, pululEnumerator);
     SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
     return FALSE;
+}
+
+
+/******************************************************************************
+ *           ResolveLocaleName (KERNEL32.@)
+ */
+
+INT WINAPI ResolveLocaleName(LPCWSTR name, LPWSTR localename, INT len)
+{
+    //FIXME("stub: %s, %p, %d\n", wine_dbgstr_w(name), localename, len);
+
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return 0;
 }
 
 /*
