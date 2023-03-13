@@ -35,7 +35,8 @@ list(APPEND SOURCE
     SystemFirmware.c
     TerminateProcess.c
     TunnelCache.c
-    WideCharToMultiByte.c)
+    WideCharToMultiByte.c
+    MyLocks.c)
 
 list(APPEND PCH_SKIP_SOURCE
     testlist.c)

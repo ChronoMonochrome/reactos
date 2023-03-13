@@ -36,6 +36,7 @@ extern void func_SystemFirmware(void);
 extern void func_TerminateProcess(void);
 extern void func_TunnelCache(void);
 extern void func_WideCharToMultiByte(void);
+extern void func_MyLocks(void);
 
 const struct test winetest_testlist[] =
 {
@@ -72,5 +73,6 @@ const struct test winetest_testlist[] =
     { "TunnelCache",                 func_TunnelCache },
     { "WideCharToMultiByte",         func_WideCharToMultiByte },
     { "ActCtxWithXmlNamespaces",     func_ActCtxWithXmlNamespaces },
+    { "MyLocks",     func_MyLocks },
     { 0, 0 }
 };
