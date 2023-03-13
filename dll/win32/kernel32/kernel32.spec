@@ -1189,8 +1189,8 @@
 @ stdcall -version=0x600+ WaitForThreadpoolWorkCallbacks(ptr long) ntdll_vista.TpWaitForWork
 @ stdcall WaitNamedPipeA (str long)
 @ stdcall WaitNamedPipeW (wstr long)
-@ stdcall -version=0x600+ WakeAllConditionVariable(ptr) kernel32_vista.WakeAllConditionVariable
-@ stdcall -version=0x600+ WakeConditionVariable(ptr) kernel32_vista.WakeConditionVariable
+;@ stdcall -stub -version=0x600+ WakeAllConditionVariable(ptr)
+;@ stdcall -stub -version=0x600+ WakeConditionVariable(ptr)
 @ stdcall -stub -version=0x600+ WerGetFlags(ptr ptr)
 @ stdcall -stub -version=0x600+ WerRegisterFile(wstr long long)
 @ stub -version=0x600+ WerRegisterMemoryBlock
