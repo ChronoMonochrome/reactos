@@ -52,7 +52,7 @@
 @ stdcall BuildCommDCBW(wstr ptr)
 @ stdcall CallNamedPipeA(str ptr long ptr long ptr long)
 @ stdcall CallNamedPipeW(wstr ptr long ptr long ptr long)
-@ stdcall -stub -version=0x600+ CallbackMayRunLong(ptr)
+@ stdcall -version=0x600+ CallbackMayRunLong(ptr)
 @ stdcall CancelDeviceWakeupRequest(long)
 @ stdcall CancelIo(long)
 @ stdcall -stub -version=0x600+ CancelIoEx(ptr ptr)
@@ -76,7 +76,7 @@
 @ stdcall -version=0x600+ CloseThreadpool(ptr) ntdll_vista.TpReleasePool
 @ stdcall -version=0x600+ CloseThreadpoolCleanupGroup(ptr) ntdll_vista.TpReleaseCleanupGroup
 @ stdcall -version=0x600+ CloseThreadpoolCleanupGroupMembers(ptr long ptr) ntdll_vista.TpReleaseCleanupGroupMembers
-@ stdcall -stub -version=0x600+ CloseThreadpoolIo(ptr)  ; really, not event stub in wine?
+@ stdcall -version=0x600+ CloseThreadpoolIo(ptr)  ; really, not event stub in wine?
 @ stdcall -version=0x600+ CloseThreadpoolTimer(ptr) ntdll_vista.TpReleaseTimer
 @ stdcall -version=0x600+ CloseThreadpoolWait(ptr) ntdll_vista.TpReleaseWait
 @ stdcall -version=0x600+ CloseThreadpoolWork(ptr) ntdll_vista.TpReleaseWork

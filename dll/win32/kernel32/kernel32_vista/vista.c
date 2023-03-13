@@ -809,6 +809,7 @@ GetProcessPreferredUILanguages(
 }
 #endif
 
+#if 0
 /*
 * @unimplemented
 */
@@ -840,6 +841,7 @@ GetThreadPreferredUILanguages(
     SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
     return FALSE;
 }
+#endif
 
 /*
  * @unimplemented
@@ -870,7 +872,7 @@ GetUILanguageInfo(
     return FALSE;
 }
 
-
+#if 0
 /*
  * @unimplemented
  */
@@ -886,6 +888,7 @@ GetUserPreferredUILanguages(
     SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
     return FALSE;
 }
+#endif
 
 /*
  * @unimplemented
@@ -904,6 +907,7 @@ SetProcessPreferredUILanguages(
 }
 #endif
 
+#if 0
 /*
  * @unimplemented
  */
@@ -919,4 +923,4 @@ SetThreadPreferredUILanguages(
     SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
     return FALSE;
 }
-
+#endif
