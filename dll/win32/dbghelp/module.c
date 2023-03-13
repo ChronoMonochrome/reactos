@@ -482,19 +482,10 @@ static BOOL image_check_debug_link(const WCHAR* file, struct image_file_map* fma
 {
     DWORD read_bytes;
     HANDLE handle;
-#ifndef DBGHELP_STATIC_LIB
-    WCHAR *path;
-#endif
     WORD magic;
     BOOL ret;
 
-#ifndef DBGHELP_STATIC_LIB
-    path = get_dos_file_name(file);
-    handle = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    heap_free(path);
-#else
     handle = CreateFileW(file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-#endif
     if (handle == INVALID_HANDLE_VALUE) return FALSE;
 
     if (link_crc)

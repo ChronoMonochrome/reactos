@@ -668,29 +668,6 @@ BOOL path_find_symbol_file(const struct process* pcs, const struct module* modul
     return FALSE;
 }
 
-WCHAR *get_dos_file_name(const WCHAR *filename)
-{
-    WCHAR *dos_path;
-    size_t len;
-
-    if (*filename == '/')
-    {
-        char *unix_path;
-        len = WideCharToMultiByte(CP_UNIXCP, 0, filename, -1, NULL, 0, NULL, NULL);
-        unix_path = heap_alloc(len * sizeof(WCHAR));
-        WideCharToMultiByte(CP_UNIXCP, 0, filename, -1, unix_path, len, NULL, NULL);
-        dos_path = wine_get_dos_file_name(unix_path);
-        heap_free(unix_path);
-    }
-    else
-    {
-        len = lstrlenW(filename);
-        dos_path = heap_alloc((len + 1) * sizeof(WCHAR));
-        memcpy(dos_path, filename, (len + 1) * sizeof(WCHAR));
-    }
-    return dos_path;
-}
-
 #ifndef __REACTOS__
 BOOL search_dll_path(const struct process *process, const WCHAR *name, BOOL (*match)(void*, HANDLE, const WCHAR*), void *param)
 {
@@ -800,18 +777,14 @@ BOOL search_unix_path(const WCHAR *name, const WCHAR *path, BOOL (*match)(void*,
             len = WideCharToMultiByte(CP_UNIXCP, 0, iter, next - iter, buf, size, NULL, NULL);
             if (buf[len - 1] != '/') buf[len++] = '/';
             WideCharToMultiByte(CP_UNIXCP, 0, name, -1, buf + len, size - len, NULL, NULL);
-            if ((dos_path = wine_get_dos_file_name(buf)))
+            HANDLE file = CreateFileW(buf, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (file != INVALID_HANDLE_VALUE)
             {
-                HANDLE file = CreateFileW(dos_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-                if (file != INVALID_HANDLE_VALUE)
-                {
-                    ret = match(param, file, dos_path);
-                    CloseHandle(file);
-                    if (ret) TRACE("found %s\n", debugstr_w(dos_path));
-                }
-                heap_free(dos_path);
-                if (ret) break;
+               ret = match(param, file, buf);
+               CloseHandle(file);
+               if (ret) TRACE("found %s\n", debugstr_w(buf));
             }
+            if (ret) break;
         }
         if (*next != ':') break;
     }

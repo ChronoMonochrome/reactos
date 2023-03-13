@@ -407,7 +407,6 @@ static BOOL elf_map_file(struct elf_map_file_data* emfd, struct image_file_map* 
 {
     unsigned int        i;
     size_t              tmp, page_mask = sysinfo.dwPageSize - 1;
-    WCHAR              *dos_path;
     unsigned char e_ident[ARRAY_SIZE(fmap->u.elf.elfhdr.e_ident)];
 
     elf_reset_file_map(fmap);
@@ -419,9 +418,7 @@ static BOOL elf_map_file(struct elf_map_file_data* emfd, struct image_file_map* 
     switch (emfd->kind)
     {
     case from_file:
-        if (!(dos_path = get_dos_file_name(emfd->u.file.filename))) return FALSE;
-        fmap->u.elf.handle = CreateFileW(dos_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-        heap_free(dos_path);
+        fmap->u.elf.handle = CreateFileW(emfd->u.file.filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
         if (fmap->u.elf.handle == INVALID_HANDLE_VALUE) return FALSE;
         break;
     case from_handle:

@@ -741,7 +741,6 @@ static BOOL macho_map_file(struct process *pcs, const WCHAR *filenameW,
     struct macho_file_map* fmap = &ifm->u.macho;
     struct macho_header mach_header;
     int                 i;
-    WCHAR*              filename;
     struct section_info info;
     BOOL                ret = FALSE;
     UINT32 target_cpu = (pcs->is_64bit) ? MACHO_CPU_TYPE_X86_64 : MACHO_CPU_TYPE_X86;
@@ -765,13 +764,11 @@ static BOOL macho_map_file(struct process *pcs, const WCHAR *filenameW,
     ifm->addr_size = (pcs->is_64bit) ? 64 : 32;
     fmap->header_size = (pcs->is_64bit) ? sizeof(struct macho_header) : FIELD_OFFSET(struct macho_header, reserved);
 
-    if (!(filename = get_dos_file_name(filenameW))) return FALSE;
-
     /* Now open the file, so that we can map it. */
-    fmap->handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    fmap->handle = CreateFileW(filenameW, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (fmap->handle == INVALID_HANDLE_VALUE)
     {
-        TRACE("failed to open file %s: %d\n", debugstr_w(filename), errno);
+        TRACE("failed to open file %s: %d\n", debugstr_w(filenameW), errno);
         goto done;
     }
 
@@ -876,7 +873,6 @@ static BOOL macho_map_file(struct process *pcs, const WCHAR *filenameW,
 done:
     if (!ret)
         macho_unmap_file(ifm);
-    HeapFree(GetProcessHeap(), 0, filename);
     return ret;
 }
 

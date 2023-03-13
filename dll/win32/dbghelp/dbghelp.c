@@ -71,7 +71,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(dbghelp);
  */
 
 unsigned   dbghelp_options = SYMOPT_UNDNAME;
-BOOL       dbghelp_opt_native = FALSE;
+BOOL       dbghelp_opt_native = TRUE;
 #ifndef DBGHELP_STATIC_LIB
 SYSTEM_INFO sysinfo;
 #endif

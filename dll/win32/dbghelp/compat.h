@@ -57,8 +57,6 @@ static __inline const char *debugstr_wn( const WCHAR *s, int n ) { return wine_d
 static __inline const char *debugstr_a( const char *s )  { return wine_dbgstr_an( s, -1 ); }
 static __inline const char *debugstr_w( const WCHAR *s ) { return wine_dbgstr_wn( s, -1 ); }
 static __inline const char *wine_dbgstr_w( const WCHAR *s ){return wine_dbgstr_wn( s, -1 );}
-/* This should never be called */
-#define wine_get_dos_file_name(__x) (assert(0), NULL)
 
 #if 0
 #define WARN(fmt, ...) fprintf(stderr, "WARN %s: " fmt, __FUNCTION__, ##__VA_ARGS__)
