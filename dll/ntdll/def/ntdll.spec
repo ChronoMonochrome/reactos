@@ -68,25 +68,24 @@
 @ stdcall -version=0x502 EtwEnableTrace(long long long ptr double)
 @ stdcall -stub -version=0x600+ EtwEnumerateProcessRegGuids()
 @ stdcall -stub -version=0x502 EtwEnumerateTraceGuids(ptr long ptr)
-@ stdcall -stub -version=0x600+ EtwEventActivityIdControl(long ptr)
-@ stdcall -stub -version=0x600+ EtwEventEnabled(int64 ptr)
-@ stdcall -stub -version=0x600+ EtwEventProviderEnabled(int64 long int64)
-@ stdcall -stub -version=0x600+ EtwEventRegister(ptr ptr ptr ptr)
-@ stdcall -stub -version=0x600+ EtwEventUnregister(int64)
-@ stdcall -stub -version=0x600+ EtwEventWrite(int64 ptr long ptr)
+@ stdcall -stub -version=0x600+ EtwEventActivityIdControl()
+@ stdcall -stub -version=0x600+ EtwEventEnabled()
+@ stdcall -stub -version=0x600+ EtwEventProviderEnabled()
+@ stdcall -stub -version=0x600+ EtwEventRegister()
+@ stdcall -stub -version=0x600+ EtwEventUnregister()
+@ stdcall -stub -version=0x600+ EtwEventWrite()
 @ stdcall -stub -version=0x600+ EtwEventWriteEndScenario()
 @ stdcall -stub -version=0x600+ EtwEventWriteFull()
-@ stdcall -stub -version=0x601+ EtwEventWriteNoRegistration(ptr ptr long ptr)
 @ stdcall -stub -version=0x600+ EtwEventWriteStartScenario()
-@ stdcall -stub -version=0x600+ EtwEventWriteString(int64 long int64 ptr)
-@ stdcall -stub -version=0x600+ EtwEventWriteTransfer(int64 ptr ptr ptr long ptr)
+@ stdcall -stub -version=0x600+ EtwEventWriteString()
+@ stdcall -stub -version=0x600+ EtwEventWriteTransfer()
 @ stdcall -version=0x502 EtwFlushTraceA(double str ptr)
 @ stdcall -version=0x502 EtwFlushTraceW(double wstr ptr)
 @ stdcall EtwGetTraceEnableFlags(double)
 @ stdcall EtwGetTraceEnableLevel(double)
 @ stdcall EtwGetTraceLoggerHandle(ptr)
 @ stdcall -stub -version=0x600+ EtwLogTraceEvent()
-@ stdcall -stub -version=0x600+ EtwNotificationRegister(ptr long ptr ptr int64)
+@ stdcall -stub -version=0x600+ EtwNotificationRegister()
 @ stdcall -stub -version=0x502 EtwNotificationRegistrationA(ptr long ptr long long)
 @ stdcall -stub -version=0x502 EtwNotificationRegistrationW(ptr long ptr long long)
 @ stdcall -stub -version=0x600+ EtwNotificationUnregister()
@@ -121,11 +120,11 @@
 @ stdcall -stub -version=0x600+ EtwpNotificationThread()
 @ stdcall -stub -version=0x502 EtwpSetHWConfigFunction(ptr long)
 @ stdcall -arch=x86_64 ExpInterlockedPopEntrySListEnd()
-@ stub -version=0x600+ -arch=x86_64 ExpInterlockedPopEntrySListEnd8
+@ stdcall -stub -version=0x600+ -arch=x86_64 ExpInterlockedPopEntrySListEnd8()
 @ stdcall -arch=x86_64 ExpInterlockedPopEntrySListFault()
-@ stub -version=0x600+ -arch=x86_64 ExpInterlockedPopEntrySListFault8
+@ stdcall -stub -version=0x600+ -arch=x86_64 ExpInterlockedPopEntrySListFault8()
 @ stdcall -arch=x86_64 ExpInterlockedPopEntrySListResume()
-@ stub -version=0x600+ -arch=x86_64 ExpInterlockedPopEntrySListResume8
+@ stdcall -stub -version=0x600+ -arch=x86_64 ExpInterlockedPopEntrySListResume8()
 @ stdcall -arch=i386 KiFastSystemCall()
 @ stdcall -arch=i386 KiFastSystemCallRet()
 @ stdcall -arch=i386 KiIntSystemCall()
@@ -164,7 +163,7 @@
 @ stdcall LdrLoadDll(wstr long ptr ptr)
 @ stdcall LdrLockLoaderLock(long ptr ptr)
 @ stdcall LdrOpenImageFileOptionsKey(ptr long ptr) ; 5.2 SP1 and higher
-@ stub -version=0x600+ -arch=x86_64 LdrProcessInitializationComplete
+@ stdcall -stub -version=0x600+ -arch=x86_64 LdrProcessInitializationComplete()
 @ stdcall LdrProcessRelocationBlock(ptr long ptr long)
 @ stdcall LdrQueryImageFileExecutionOptions(ptr str long ptr long ptr)
 @ stdcall LdrQueryImageFileExecutionOptionsEx(ptr ptr long ptr long ptr long)
@@ -1313,11 +1312,15 @@
 @ stdcall -stub -version=0x600+ ShipAssertMsgW()
 @ stdcall -stub -version=0x600+ TpAllocAlpcCompletion()
 @ stdcall -stub -version=0x600+ TpAllocAlpcCompletionEx()
+@ stdcall -version=0x600+ TpAllocCleanupGroup(ptr) ntdll_vista.TpAllocCleanupGroup
 @ stdcall -stub -version=0x600+ TpAllocIoCompletion()
 @ stdcall -version=0x600+ TpAllocPool(ptr ptr) ntdll_vista.TpAllocPool
 @ stdcall -version=0x600+ TpAllocTimer(ptr ptr ptr ptr) ntdll_vista.TpAllocTimer
 @ stdcall -version=0x600+ TpAllocWait(ptr ptr ptr ptr) ntdll_vista.TpAllocWait
 @ stdcall -version=0x600+ TpAllocWork(ptr ptr ptr ptr) ntdll_vista.TpAllocWork
+@ stdcall -stub -version=0x600+ TpAlpcRegisterCompletionList()
+@ stdcall -stub -version=0x600+ TpAlpcUnregisterCompletionList()
+@ stdcall -stub -version=0x600+ TpCallbackIndependent()
 @ stdcall -version=0x600+ TpCallbackLeaveCriticalSectionOnCompletion(ptr ptr) ntdll_vista.TpCallbackLeaveCriticalSectionOnCompletion
 @ stdcall -version=0x600+ TpCallbackMayRunLong(ptr) ntdll_vista.TpCallbackMayRunLong
 @ stdcall -version=0x600+ TpCallbackReleaseMutexOnCompletion(ptr ptr) ntdll_vista.TpCallbackReleaseMutexOnCompletion
@@ -1360,16 +1363,12 @@
 @ stdcall -stub -version=0x600+ WerReportSQMEvent()
 @ stdcall -stub -version=0x600+ WerReportWatsonEvent()
 @ stdcall -stub -version=0x600+ WinSqmAddToStream()
-@ stdcall -stub -version=0x600+ WinSqmAddToStreamEx()
-@ stdcall -stub -version=0x600+ WinSqmEndSession(ptr)
+@ stdcall -stub -version=0x600+ WinSqmEndSession()
 @ stdcall -stub -version=0x600+ WinSqmEventEnabled()
 @ stdcall -stub -version=0x600+ WinSqmEventWrite()
-@ stdcall -stub -version=0x600+ WinSqmIncrementDWORD(long long long)
 @ stdcall -stub -version=0x600+ WinSqmIsOptedIn()
-@ stdcall -stub -version=0x600+ WinSqmSetIfMaxDWORD()
-@ stdcall -stub -version=0x600+ WinSqmSetDWORD(ptr long long)
 @ stdcall -stub -version=0x600+ WinSqmSetString()
-@ stdcall -stub -version=0x600+ WinSqmStartSession(ptr long long)
+@ stdcall -stub -version=0x600+ WinSqmStartSession()
 @ stdcall ZwAcceptConnectPort(ptr long ptr long long ptr)
 @ stdcall ZwAccessCheck(ptr long long ptr ptr ptr ptr ptr)
 @ stdcall ZwAccessCheckAndAuditAlarm(ptr long ptr ptr ptr long ptr long ptr ptr ptr)

@@ -168,12 +168,12 @@
 @ stdcall -version=0x600+ CreateSymbolicLinkW(wstr wstr long) kernel32_vista.CreateSymbolicLinkW
 @ stdcall CreateTapePartition(long long long long)
 @ stdcall CreateThread(ptr long ptr long long ptr)
-@ stdcall -stub -version=0x600+ CreateThreadpool(ptr)
-@ stdcall -stub -version=0x600+ CreateThreadpoolCleanupGroup()
-@ stdcall -stub -version=0x600+ CreateThreadpoolIo(ptr ptr ptr ptr)
-@ stdcall -stub -version=0x600+ CreateThreadpoolTimer(ptr ptr ptr)
-@ stdcall -stub -version=0x600+ CreateThreadpoolWait(ptr ptr ptr)
-@ stdcall -stub -version=0x600+ CreateThreadpoolWork(ptr ptr ptr)
+@ stdcall -version=0x600+ CreateThreadpool(ptr)
+@ stdcall -version=0x600+ CreateThreadpoolCleanupGroup()
+@ stdcall -version=0x600+ CreateThreadpoolIo(ptr ptr ptr ptr)
+@ stdcall -version=0x600+ CreateThreadpoolTimer(ptr ptr ptr)
+@ stdcall -version=0x600+ CreateThreadpoolWait(ptr ptr ptr)
+@ stdcall -version=0x600+ CreateThreadpoolWork(ptr ptr ptr)
 @ stdcall CreateTimerQueue ()
 @ stdcall CreateTimerQueueTimer(ptr long ptr ptr long long long)
 @ stdcall CreateToolhelp32Snapshot(long long)
@@ -1088,8 +1088,8 @@
 @ stdcall SetThreadUILanguage(long)
 @ stdcall -version=0x600+ SetThreadpoolThreadMaximum(ptr long) ntdll_vista.TpSetPoolMaxThreads
 @ stdcall -version=0x600+ SetThreadpoolThreadMinimum(ptr long) ntdll_vista.TpSetPoolMinThreads
-@ stdcall -stub -version=0x600+ SetThreadpoolTimer(ptr ptr long long)
-@ stdcall -stub -version=0x600+ SetThreadpoolWait(ptr ptr ptr)
+@ stdcall -version=0x600+ SetThreadpoolTimer(ptr ptr long long)
+@ stdcall -version=0x600+ SetThreadpoolWait(ptr ptr ptr)
 @ stdcall SetTimeZoneInformation(ptr)
 @ stdcall SetTimerQueueTimer(long ptr ptr long long long)
 @ stdcall SetUnhandledExceptionFilter(ptr)
@@ -1131,7 +1131,7 @@
 @ stdcall -version=0x600+ TryAcquireSRWLockExclusive(ptr) ntdll_vista.RtlTryAcquireSRWLockExclusive
 @ stdcall -version=0x600+ TryAcquireSRWLockShared(ptr) ntdll_vista.RtlTryAcquireSRWLockShared
 @ stdcall TryEnterCriticalSection(ptr) ntdll.RtlTryEnterCriticalSection
-@ stdcall -stub -version=0x600+ TrySubmitThreadpoolCallback(ptr ptr ptr)
+@ stdcall -version=0x600+ TrySubmitThreadpoolCallback(ptr ptr ptr)
 @ stdcall TzSpecificLocalTimeToSystemTime(ptr ptr ptr)
 @ stdcall UTRegister(long str str str ptr ptr ptr)
 @ stdcall UTUnRegister(long)

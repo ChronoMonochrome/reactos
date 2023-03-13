@@ -1328,7 +1328,7 @@ TlsSetValue(IN DWORD Index,
     return TRUE;
 }
 
-#if 0
+#if 1
 
 NTSYSAPI NTSTATUS  WINAPI TpAllocCleanupGroup(TP_CLEANUP_GROUP **);
 NTSYSAPI NTSTATUS  WINAPI TpAllocPool(TP_POOL **,PVOID);

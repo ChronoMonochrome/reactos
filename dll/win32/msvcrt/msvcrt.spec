@@ -935,6 +935,7 @@
 @ cdecl -version=0x600+ _searchenv_s(str str ptr long)
 @ stub -version=0x600+ -arch=i386 _seh_longjmp_unwind4
 @ stdcall -arch=i386 _seh_longjmp_unwind(ptr)
+@ cdecl -arch=i386 -version=0x600+ _seh_filter_dll(long ptr)
 @ stub -arch=i386 _set_SSE2_enable
 @ stub -version=0x600+ _set_controlfp
 @ cdecl -version=0x600+ _set_doserrno(long)
