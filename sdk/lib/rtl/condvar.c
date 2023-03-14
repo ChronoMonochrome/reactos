@@ -532,6 +532,7 @@ RtlSleepConditionVariableSRW(IN OUT PRTL_CONDITION_VARIABLE ConditionVariable,
                          TimeOut);
 }
 
+#ifdef __GNUC__
 /******************************************************************************
  *	RtlCompareUnicodeStrings   (NTDLL.@)
  */
@@ -562,5 +563,6 @@ LONG NTAPI RtlCompareUnicodeStrings( const WCHAR *s1, SIZE_T len1, const WCHAR *
     if (!ret) ret = len1 - len2;
     return ret;
 }
+#endif
 
 /* EOF */

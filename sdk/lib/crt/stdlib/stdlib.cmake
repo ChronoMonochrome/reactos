@@ -24,6 +24,7 @@ list(APPEND CRT_STDLIB_SOURCE
     stdlib/putenv.c
     stdlib/rot.c
     stdlib/senv.c
+    stdlib/stubs.c
     stdlib/swab.c
     stdlib/wfulpath.c
     stdlib/wputenv.c

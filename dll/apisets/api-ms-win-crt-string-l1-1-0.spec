@@ -177,6 +177,6 @@
 @ stdcall wcstok() msvcrt.wcstok
 @ cdecl -version=0x600+ wcstok_s(wstr wstr ptr) msvcrt.wcstok_s
 @ stdcall wcsxfrm() msvcrt.wcsxfrm
-@ cdecl -arch=i386 __p__pwctype() msvcrt.wctype
+;@ cdecl -arch=i386 __p__pwctype() msvcrt.wctype
 @ stub wmemcpy_s
 @ stub wmemmove_s

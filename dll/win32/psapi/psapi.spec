@@ -21,7 +21,6 @@
 @ stdcall GetProcessImageFileNameW(ptr ptr long)
 @ stdcall GetProcessMemoryInfo(ptr ptr long)
 @ stdcall GetWsChanges(ptr ptr long)
-@ stdcall -version=0x600+ GetWsChangesEx(ptr ptr long)
 @ stdcall InitializeProcessForWsWatch(ptr)
 @ stdcall -version=0x600+ GetWsChangesEx(ptr ptr long)
 @ stdcall QueryWorkingSet(ptr ptr long)

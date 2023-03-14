@@ -6,7 +6,14 @@
 #define NDEBUG
 #include <reactos/debug.h>
 
-__stdcall HRESULT DXVA2CreateDirect3DDeviceManager9(
+#if defined(__GNUC__) || defined(__clang__)
+__stdcall
+#endif
+HRESULT
+#if !defined(__GNUC__) && !defined(__clang__)
+__stdcall
+#endif
+ DXVA2CreateDirect3DDeviceManager9(
   UINT                    *pResetToken,
   PVOID **ppDeviceManager
 )
@@ -15,7 +22,14 @@ __stdcall HRESULT DXVA2CreateDirect3DDeviceManager9(
     return 0;
 }
 
-__stdcall HRESULT DXVA2CreateVideoService(
+#if defined(__GNUC__) || defined(__clang__)
+__stdcall
+#endif
+HRESULT
+#if !defined(__GNUC__) && !defined(__clang__)
+__stdcall
+#endif
+ DXVA2CreateVideoService(
   ULONG_PTR *pDD,
   REFIID           riid,
   void             **ppService

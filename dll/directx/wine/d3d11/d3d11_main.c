@@ -28,7 +28,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(d3d11);
 
-__stdcall HRESULT WINAPI D3D11CreateDevice(
+HRESULT WINAPI D3D11CreateDevice(
     _In_opt_ IDXGIAdapter* pAdapter,
     D3D_DRIVER_TYPE DriverType,
     HMODULE Software,

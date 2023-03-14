@@ -23,6 +23,8 @@
  *
  */
 
+#if defined(__GNUC__) || defined(__clang__)
+
 #ifndef _COMPLEX_H_
 #define _COMPLEX_H_
 
@@ -207,3 +209,5 @@ __CRT_INLINE  long double cargl (long double _Complex _Z)
 
 
 #endif /* _COMPLEX_H */
+
+#endif

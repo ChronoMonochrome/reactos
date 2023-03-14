@@ -6,7 +6,14 @@
 #define NDEBUG
 #include <reactos/debug.h>
 
-__stdcall HRESULT DWriteCreateFactory(
+#if defined(__GNUC__) || defined(__clang__)
+__stdcall
+#endif
+HRESULT
+#if !defined(__GNUC__) && !defined(__clang__)
+__stdcall
+#endif
+DWriteCreateFactory(
   int factoryType,
   REFIID              iid,
   PVOID          **factory

@@ -434,8 +434,8 @@
 @ stdcall -version=0x602+ GetCurrentPackageId(ptr ptr)
 @ stdcall -norelay GetCurrentProcess()
 @ stdcall -norelay GetCurrentProcessId()
-;@ stdcall GetCurrentProcessorNumber() ntdll.RtlGetCurrentProcessorNumber
-;@ stdcall -version=0x601+ GetCurrentProcessorNumberEx(ptr) ntdll.RtlGetCurrentProcessorNumberEx
+@ stdcall GetCurrentProcessorNumber() ntdll.RtlGetCurrentProcessorNumber
+@ stdcall -version=0x601+ GetCurrentProcessorNumberEx(ptr) ntdll.RtlGetCurrentProcessorNumberEx
 @ stdcall -norelay GetCurrentThread()
 @ stdcall -norelay GetCurrentThreadId()
 @ stdcall GetDateFormatA(long long ptr str ptr long)

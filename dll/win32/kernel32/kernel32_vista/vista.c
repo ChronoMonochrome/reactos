@@ -703,7 +703,7 @@ SetFileBandwidthReservation(IN HANDLE hFile,
  */
 BOOL
 WINAPI
-GetFileBandwidthReservation(IN HANDLE hFile,
+_GetFileBandwidthReservation(IN HANDLE hFile,
                             OUT LPDWORD lpPeriodMilliseconds,
                             OUT LPDWORD lpBytesPerPeriod,
                             OUT LPBOOL pDiscardable,

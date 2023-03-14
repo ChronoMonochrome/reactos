@@ -26,7 +26,7 @@
 @ stdcall CompareStringOrdinal(wstr long wstr long long)
 @ stdcall GetApplicationRecoveryCallback(ptr ptr ptr ptr ptr)
 @ stdcall GetApplicationRestart(ptr wstr ptr ptr)
-@ stdcall GetFileBandwidthReservation(ptr ptr ptr ptr ptr ptr)
+@ stdcall GetFileBandwidthReservation(ptr ptr ptr ptr ptr ptr) _GetFileBandwidthReservation
 @ stdcall GetFileMUIInfo(long wstr ptr ptr)
 @ stdcall GetFileMUIPath(long wstr wstr ptr wstr ptr ptr)
 @ stdcall GetFinalPathNameByHandleA(ptr str long long)

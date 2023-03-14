@@ -304,6 +304,7 @@
 @ cdecl -version=0x600+ -arch=i386 __libm_sse2_sinf()
 @ cdecl -version=0x600+ -arch=i386 __libm_sse2_tan()
 @ cdecl -version=0x600+ -arch=i386 __libm_sse2_tanf()
+@ cdecl -version=0x600+ -arch=i386 __libm_sse2_sqrt_precise()
 @ extern __mb_cur_max
 @ cdecl -arch=i386 __p___argc()
 @ cdecl -arch=i386 __p___argv()
@@ -616,7 +617,7 @@
 @ cdecl -arch=x86_64 -version=0x502 _heapused(ptr ptr)
 @ cdecl _heapwalk(ptr)
 @ cdecl _hypot(double double)
-@ cdecl _hypotf(float float)
+@ cdecl _hypotf(float float) __hypotf
 @ cdecl _i64toa(long long ptr long)
 @ cdecl -version=0x600+ _i64toa_s(int64 ptr long long)
 @ cdecl _i64tow(long long ptr long)
@@ -1594,28 +1595,5 @@
 @ stub -version=0x600+ wprintf_s
 @ varargs wscanf(wstr)
 @ stub -version=0x600+ wscanf_s
-@ cdecl -version=0x600+ RoGetActivationFactory(ptr long ptr) MSVCRT_RoGetActivationFactory
-
-@ cdecl -arch=i386 __libm_sse2_acos()
-@ cdecl -arch=i386 __libm_sse2_acosf()
-@ cdecl -arch=i386 __libm_sse2_asin()
-@ cdecl -arch=i386 __libm_sse2_asinf()
-@ cdecl -arch=i386 __libm_sse2_atan()
-@ cdecl -arch=i386 __libm_sse2_atan2()
-@ cdecl -arch=i386 __libm_sse2_atanf()
-@ cdecl -arch=i386 __libm_sse2_cos()
-@ cdecl -arch=i386 __libm_sse2_cosf()
-@ cdecl -arch=i386 __libm_sse2_exp()
-@ cdecl -arch=i386 __libm_sse2_expf()
-@ cdecl -arch=i386 __libm_sse2_log()
-@ cdecl -arch=i386 __libm_sse2_log10()
-@ cdecl -arch=i386 __libm_sse2_log10f()
-@ cdecl -arch=i386 __libm_sse2_logf()
-@ cdecl -arch=i386 __libm_sse2_pow()
-@ cdecl -arch=i386 __libm_sse2_powf()
-@ cdecl -arch=i386 __libm_sse2_sin()
-@ cdecl -arch=i386 __libm_sse2_sinf()
-@ cdecl -arch=i386 __libm_sse2_tan()
-@ cdecl -arch=i386 __libm_sse2_tanf()
-@ cdecl -arch=i386 __libm_sse2_sqrt_precise()
+@ cdecl -version=0x600+ RoGetActivationFactory(ptr long ptr) RoGetActivationFactory
 @ cdecl _set_invalid_parameter_handler(ptr)

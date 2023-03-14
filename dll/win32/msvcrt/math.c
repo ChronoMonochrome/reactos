@@ -576,7 +576,7 @@ recompute:
 }
 
 /* Based on musl implementation: src/math/round.c */
-static double __round(double x)
+static double ____round(double x)
 {
     ULONGLONG llx = *(ULONGLONG*)&x, tmp;
     int e = (llx >> 52 & 0x7ff) - 0x3ff;
@@ -1261,7 +1261,7 @@ float CDECL expf( float x )
     /* Round and convert z to int, the result is in [-150*N, 128*N] and
        ideally ties-to-even rule is used, otherwise the magnitude of r
        can be bigger which gives larger approximation error.  */
-    kd = __round(z);
+    kd = ____round(z);
     ki = (INT64)kd;
     r = z - kd;
 
@@ -1565,7 +1565,7 @@ static float powf_exp2(double xd, UINT32 sign_bias)
     double kd, z, r, r2, y, s;
 
     /* N*x = k + r with r in [-1/2, 1/2] */
-    kd = __round(xd); /* k */
+    kd = ____round(xd); /* k */
     ki = (INT64)kd;
     r = xd - kd;
 
@@ -2243,8 +2243,10 @@ double CDECL asin( double x )
     double z, r, s;
     unsigned int hx, ix;
     ULONGLONG llx;
+#if defined(GNUC) || defined(__clang__)
 #ifdef __i386__
     unsigned int x87_cw, sse2_cw;
+#endif
 #endif
 
     hx = *(ULONGLONG*)&x >> 32;
@@ -2267,11 +2269,13 @@ double CDECL asin( double x )
         return math_error(_DOMAIN, "asin", x, 0, 0 / (x - x));
     }
 
+#if defined(GNUC) || defined(__clang__)
 #ifdef __i386__
     __control87_2(0, 0, &x87_cw, &sse2_cw);
     if (!sse2_enabled || (x87_cw & _MCW_EM) != _MCW_EM
             || (sse2_cw & (_MCW_EM | _MCW_RC)) != _MCW_EM)
         return x87_asin(x);
+#endif
 #endif
 
     /* |x| < 0.5 */
@@ -3049,7 +3053,7 @@ double CDECL exp( double x )
     /* exp(x) = 2^(k/N) * exp(r), with exp(r) in [2^(-1/2N),2^(1/2N)]. */
     /* x = ln2/N*k + r, with int k and r in [-ln2/2N, ln2/2N]. */
     z = invln2N * x;
-    kd = __round(z);
+    kd = ____round(z);
     ki = (INT64)kd;
 
     r = x + kd * negln2hiN + kd * negln2loN;
@@ -3881,7 +3885,7 @@ static double pow_exp(double argx, double argy, double x, double xtail, UINT32 s
     /* exp(x) = 2^(k/N) * exp(r), with exp(r) in [2^(-1/2N),2^(1/2N)]. */
     /* x = ln2/N*k + r, with int k and r in [-ln2/2N, ln2/2N]. */
     z = invln2N * x;
-    kd = __round(z);
+    kd = ____round(z);
     ki = (INT64)kd;
     r = x + kd * negln2hiN + kd * negln2loN;
     /* The code assumes 2^-200 < |xtail| < 2^-8/N. */
@@ -4185,17 +4189,21 @@ __ASM_GLOBAL_FUNC( x87_sqrt,
  */
 double CDECL sqrt( double x )
 {
-#ifdef __x86_64__
+#if defined(__GNUC__) || defined(__clang__)
+#if defined(__x86_64__)
     if (!sqrt_validate(&x, TRUE))
         return x;
 
     return sse2_sqrt(x);
-#elif defined( __i386__ )
+#elif defined(__i386__)
     if (!sqrt_validate(&x, TRUE))
         return x;
 
     return x87_sqrt(x);
-#else
+#endif
+#endif
+
+#if (!defined(__GNUC__) && !defined(__clang__)) || (!defined(__i386__) && !defined(__x86_64__))
     static const double tiny = 1.0e-300;
 
     double z;
@@ -4669,9 +4677,9 @@ intmax_t CDECL imaxabs( intmax_t n )
 #endif
 
 /*********************************************************************
- *		_abs64 (MSVCRT.@)
+ *		__abs64 (MSVCRT.@)
  */
-__int64 CDECL _abs64( __int64 n )
+__int64 CDECL __abs64( __int64 n )
 {
     return n >= 0 ? n : -n;
 }
@@ -4772,11 +4780,11 @@ double CDECL _hypot(double x, double y)
 }
 
 /*********************************************************************
- *      _hypotf (MSVCRT.@)
+ *      	_hypotf (MSVCRT.@)
  *
  * Copied from musl: src/math/hypotf.c
  */
-float CDECL _hypotf(float x, float y)
+float CDECL __hypotf(float x, float y)
 {
     UINT32 ux = *(UINT32*)&x, uy = *(UINT32*)&y, ut;
     float z;
@@ -5497,11 +5505,11 @@ static void _setfp( unsigned int *cw, unsigned int cw_mask,
     if (old_fpcr != fpcr)
         __asm__ __volatile__( "msr fpcr, %0" :: "r" (fpcr) );
 #elif defined(__arm__) && !defined(__SOFTFP__)
-    DWORD old_fpscr, fpscr;
+    DWORD old_fpscr, _fpscr;
     unsigned int flags;
 
-    __asm__ __volatile__( "vmrs %0, fpscr" : "=r" (fpscr) );
-    old_fpscr = fpscr;
+    __asm__ __volatile__( "vmrs %0, fpscr" : "=r" (_fpscr) );
+    old_fpscr = _fpscr;
 
     cw_mask &= _MCW_EM | _MCW_RC;
     sw_mask &= _MCW_EM;
@@ -5509,35 +5517,35 @@ static void _setfp( unsigned int *cw, unsigned int cw_mask,
     if (sw)
     {
         flags = 0;
-        if (fpscr & 0x1) flags |= _SW_INVALID;
-        if (fpscr & 0x2) flags |= _SW_ZERODIVIDE;
-        if (fpscr & 0x4) flags |= _SW_OVERFLOW;
-        if (fpscr & 0x8) flags |= _SW_UNDERFLOW;
-        if (fpscr & 0x10) flags |= _SW_INEXACT;
-        if (fpscr & 0x80) flags |= _SW_DENORMAL;
+        if (_fpscr & 0x1) flags |= _SW_INVALID;
+        if (_fpscr & 0x2) flags |= _SW_ZERODIVIDE;
+        if (_fpscr & 0x4) flags |= _SW_OVERFLOW;
+        if (_fpscr & 0x8) flags |= _SW_UNDERFLOW;
+        if (_fpscr & 0x10) flags |= _SW_INEXACT;
+        if (_fpscr & 0x80) flags |= _SW_DENORMAL;
 
         *sw = (flags & ~sw_mask) | (*sw & sw_mask);
         TRACE("arm update sw %08x to %08x\n", flags, *sw);
-        fpscr &= ~0x9f;
-        if (*sw & _SW_INVALID) fpscr |= 0x1;
-        if (*sw & _SW_ZERODIVIDE) fpscr |= 0x2;
-        if (*sw & _SW_OVERFLOW) fpscr |= 0x4;
-        if (*sw & _SW_UNDERFLOW) fpscr |= 0x8;
-        if (*sw & _SW_INEXACT) fpscr |= 0x10;
-        if (*sw & _SW_DENORMAL) fpscr |= 0x80;
+        _fpscr &= ~0x9f;
+        if (*sw & _SW_INVALID) _fpscr |= 0x1;
+        if (*sw & _SW_ZERODIVIDE) _fpscr |= 0x2;
+        if (*sw & _SW_OVERFLOW) _fpscr |= 0x4;
+        if (*sw & _SW_UNDERFLOW) _fpscr |= 0x8;
+        if (*sw & _SW_INEXACT) _fpscr |= 0x10;
+        if (*sw & _SW_DENORMAL) _fpscr |= 0x80;
         *sw = flags;
     }
 
     if (cw)
     {
         flags = 0;
-        if (!(fpscr & 0x100)) flags |= _EM_INVALID;
-        if (!(fpscr & 0x200)) flags |= _EM_ZERODIVIDE;
-        if (!(fpscr & 0x400)) flags |= _EM_OVERFLOW;
-        if (!(fpscr & 0x800)) flags |= _EM_UNDERFLOW;
-        if (!(fpscr & 0x1000)) flags |= _EM_INEXACT;
-        if (!(fpscr & 0x8000)) flags |= _EM_DENORMAL;
-        switch (fpscr & 0xc00000)
+        if (!(_fpscr & 0x100)) flags |= _EM_INVALID;
+        if (!(_fpscr & 0x200)) flags |= _EM_ZERODIVIDE;
+        if (!(_fpscr & 0x400)) flags |= _EM_OVERFLOW;
+        if (!(_fpscr & 0x800)) flags |= _EM_UNDERFLOW;
+        if (!(_fpscr & 0x1000)) flags |= _EM_INEXACT;
+        if (!(_fpscr & 0x8000)) flags |= _EM_DENORMAL;
+        switch (_fpscr & 0xc00000)
         {
         case 0x400000: flags |= _RC_UP; break;
         case 0x800000: flags |= _RC_DOWN; break;
@@ -5546,27 +5554,151 @@ static void _setfp( unsigned int *cw, unsigned int cw_mask,
 
         *cw = (flags & ~cw_mask) | (*cw & cw_mask);
         TRACE("arm update cw %08x to %08x\n", flags, *cw);
-        fpscr &= ~0xc09f00ul;
-        if (!(*cw & _EM_INVALID)) fpscr |= 0x100;
-        if (!(*cw & _EM_ZERODIVIDE)) fpscr |= 0x200;
-        if (!(*cw & _EM_OVERFLOW)) fpscr |= 0x400;
-        if (!(*cw & _EM_UNDERFLOW)) fpscr |= 0x800;
-        if (!(*cw & _EM_INEXACT)) fpscr |= 0x1000;
-        if (!(*cw & _EM_DENORMAL)) fpscr |= 0x8000;
+        _fpscr &= ~0xc09f00ul;
+        if (!(*cw & _EM_INVALID)) _fpscr |= 0x100;
+        if (!(*cw & _EM_ZERODIVIDE)) _fpscr |= 0x200;
+        if (!(*cw & _EM_OVERFLOW)) _fpscr |= 0x400;
+        if (!(*cw & _EM_UNDERFLOW)) _fpscr |= 0x800;
+        if (!(*cw & _EM_INEXACT)) _fpscr |= 0x1000;
+        if (!(*cw & _EM_DENORMAL)) _fpscr |= 0x8000;
         switch (*cw & _MCW_RC)
         {
-        case _RC_CHOP: fpscr |= 0xc00000; break;
-        case _RC_UP: fpscr |= 0x400000; break;
-        case _RC_DOWN: fpscr |= 0x800000; break;
+        case _RC_CHOP: _fpscr |= 0xc00000; break;
+        case _RC_UP: _fpscr |= 0x400000; break;
+        case _RC_DOWN: _fpscr |= 0x800000; break;
         }
     }
 
-    if (old_fpscr != fpscr)
-        __asm__ __volatile__( "vmsr fpscr, %0" :: "r" (fpscr) );
+    if (old_fpscr != _fpscr)
+        __asm__ __volatile__( "vmsr fpscr, %0" :: "r" (_fpscr) );
 #else
-    FIXME("not implemented\n");
-    if (cw) *cw = 0;
-    if (sw) *sw = 0;
+    unsigned long oldcw = 0, newcw = 0;
+    unsigned long oldsw = 0, newsw = 0;
+    unsigned int flags;
+
+    cw_mask &= _MCW_EM | _MCW_IC | _MCW_RC | _MCW_PC;
+    sw_mask &= _MCW_EM;
+
+    if (sw)
+    {
+        __asm {
+			fstsw newsw 
+		}
+        oldsw = newsw;
+
+        flags = 0;
+        if (newsw & 0x1) flags |= _SW_INVALID;
+        if (newsw & 0x2) flags |= _SW_DENORMAL;
+        if (newsw & 0x4) flags |= _SW_ZERODIVIDE;
+        if (newsw & 0x8) flags |= _SW_OVERFLOW;
+        if (newsw & 0x10) flags |= _SW_UNDERFLOW;
+        if (newsw & 0x20) flags |= _SW_INEXACT;
+
+        *sw = (flags & ~sw_mask) | (*sw & sw_mask);
+        TRACE("x86 update sw %08x to %08x\n", flags, *sw);
+        newsw &= ~0x3f;
+        if (*sw & _SW_INVALID) newsw |= 0x1;
+        if (*sw & _SW_DENORMAL) newsw |= 0x2;
+        if (*sw & _SW_ZERODIVIDE) newsw |= 0x4;
+        if (*sw & _SW_OVERFLOW) newsw |= 0x8;
+        if (*sw & _SW_UNDERFLOW) newsw |= 0x10;
+        if (*sw & _SW_INEXACT) newsw |= 0x20;
+        *sw = flags;
+    }
+
+    if (cw)
+    {
+        __asm {
+			fstcw newcw
+		}
+        oldcw = newcw;
+
+        flags = 0;
+        if (newcw & 0x1) flags |= _EM_INVALID;
+        if (newcw & 0x2) flags |= _EM_DENORMAL;
+        if (newcw & 0x4) flags |= _EM_ZERODIVIDE;
+        if (newcw & 0x8) flags |= _EM_OVERFLOW;
+        if (newcw & 0x10) flags |= _EM_UNDERFLOW;
+        if (newcw & 0x20) flags |= _EM_INEXACT;
+        switch (newcw & 0xc00)
+        {
+        case 0xc00: flags |= _RC_UP|_RC_DOWN; break;
+        case 0x800: flags |= _RC_UP; break;
+        case 0x400: flags |= _RC_DOWN; break;
+        }
+        switch (newcw & 0x300)
+        {
+        case 0x0: flags |= _PC_24; break;
+        case 0x200: flags |= _PC_53; break;
+        case 0x300: flags |= _PC_64; break;
+        }
+        if (newcw & 0x1000) flags |= _IC_AFFINE;
+
+        *cw = (flags & ~cw_mask) | (*cw & cw_mask);
+        TRACE("x86 update cw %08x to %08x\n", flags, *cw);
+        newcw &= ~0x1f3f;
+        if (*cw & _EM_INVALID) newcw |= 0x1;
+        if (*cw & _EM_DENORMAL) newcw |= 0x2;
+        if (*cw & _EM_ZERODIVIDE) newcw |= 0x4;
+        if (*cw & _EM_OVERFLOW) newcw |= 0x8;
+        if (*cw & _EM_UNDERFLOW) newcw |= 0x10;
+        if (*cw & _EM_INEXACT) newcw |= 0x20;
+        switch (*cw & _MCW_RC)
+        {
+        case _RC_UP|_RC_DOWN: newcw |= 0xc00; break;
+        case _RC_UP: newcw |= 0x800; break;
+        case _RC_DOWN: newcw |= 0x400; break;
+        }
+        switch (*cw & _MCW_PC)
+        {
+        case _PC_64: newcw |= 0x300; break;
+        case _PC_53: newcw |= 0x200; break;
+        case _PC_24: newcw |= 0x0; break;
+        }
+        if (*cw & _IC_AFFINE) newcw |= 0x1000;
+    }
+
+    if (oldsw != newsw && (newsw & 0x3f))
+    {
+        struct {
+            WORD control_word;
+            WORD unused1;
+            WORD status_word;
+            WORD unused2;
+            WORD tag_word;
+            WORD unused3;
+            DWORD instruction_pointer;
+            WORD code_segment;
+            WORD unused4;
+            DWORD operand_addr;
+            WORD data_segment;
+            WORD unused5;
+        } fenv;
+
+        assert(cw);
+
+        __asm {
+			fnstenv fenv
+		}
+        fenv.control_word = newcw;
+        fenv.status_word = newsw;
+        __asm {
+			fldenv fenv
+		}
+        return;
+    }
+
+    if (oldsw != newsw) {
+        __asm {
+			fnclex
+		}
+	}
+    if (oldcw != newcw)
+	{
+        __asm {
+			fldcw newcw
+		}
+	}
 #endif
 }
 
@@ -7661,6 +7793,7 @@ void _safe_fprem1(void)
   TRACE("(): stub\n");
 }
 
+#if defined(__GNUC__) || defined(__clang__)
 /***********************************************************************
  *		__libm_sse2_acos   (MSVCRT.@)
  */
@@ -7916,6 +8049,403 @@ void __cdecl __libm_sse2_sqrt_precise(void)
     }
     __asm__ __volatile__( "call " __ASM_NAME( "sse2_sqrt" ) );
 }
+#else
+/***********************************************************************
+ *		__libm_sse2_acos   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_acos(void)
+{
+    double d;
+    __asm {
+		movq d, xmm0
+	}
+
+    d = acos(d);
+
+    __asm {
+		movq xmm0, d
+	}
+}
+
+/***********************************************************************
+ *		__libm_sse2_acosf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_acosf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = acosf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_asin   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_asin(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = asin(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_asinf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_asinf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = asinf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_atan   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_atan(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = atan(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_atan2   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_atan2(void)
+{
+    double d1, d2;
+    __asm {
+    	movq d1, xmm0
+		movq d2, xmm1
+    }
+
+    d1 = atan2(d1, d2);
+
+    __asm {
+    	movq xmm0, d1
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_atanf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_atanf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = atanf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_cos   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_cos(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = cos(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_cosf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_cosf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = cosf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_exp   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_exp(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = exp(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_expf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_expf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = expf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_log   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_log(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = log(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_log10   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_log10(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = log10(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_log10f   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_log10f(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = log10f(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_logf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_logf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = logf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_pow   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_pow(void)
+{
+    double d1, d2;
+    __asm {
+    	movq d1, xmm0
+		movq d2, xmm1
+    }
+
+    d1 = pow(d1, d2);
+
+    __asm {
+    	movq xmm0, d1
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_powf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_powf(void)
+{
+    double d1, d2;
+    __asm {
+    	movq d1, xmm0
+		movq d2, xmm1
+    }
+
+    d1 = powf(d1, d2);
+
+    __asm {
+    	movq xmm0, d1
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_sin   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_sin(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = sin(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_sinf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_sinf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = sinf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_tan   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_tan(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = tan(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_tanf   (MSVCRT.@)
+ */
+void __cdecl __libm_sse2_tanf(void)
+{
+    double d;
+    __asm {
+    	movq d, xmm0
+    }
+
+    d = tanf(d);
+
+    __asm {
+    	movq xmm0, d
+    }
+}
+
+/***********************************************************************
+ *		__libm_sse2_sqrt_precise   (MSVCR110.@)
+ */
+void __cdecl __libm_sse2_sqrt_precise(void)
+{
+    unsigned int cw;
+    double d;
+
+    __asm {
+		movq d, xmm0
+	}
+
+    __control87_2(0, 0, NULL, &cw);
+    if (cw & _MCW_RC)
+    {
+        d = sqrt(d);
+        __asm {
+			movq xmm0, d
+		}
+        return;
+    }
+
+    if (!sqrt_validate(&d, FALSE))
+    {
+        __asm {
+			movq xmm0, d
+		}
+        return;
+    }
+  
+	__asm {
+		sqrtsd xmm0, xmm0
+	}
+}
+
+#endif
 #endif  /* __i386__ */
 
 #if _MSVCR_VER>=120
@@ -8771,7 +9301,7 @@ __int64 CDECL llrintf(float x)
  */
 double CDECL round(double x)
 {
-    return __round(x);
+    return ____round(x);
 }
 
 /*********************************************************************
